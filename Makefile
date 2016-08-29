@@ -18,8 +18,11 @@ luazen.so:  src/*.c src/*.h
 	$(CC) -c $(CFLAGS) src/*.c
 	$(CC) -shared $(LDFLAGS) -o luazen.so $(LUAZEN_O)
 
+test:  luazen.so
+	lua test_luazen.lua
+	
 clean:
 	rm -f *.o *.a *.so
 
-.PHONY: clean
+.PHONY: clean test
 
