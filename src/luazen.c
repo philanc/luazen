@@ -10,9 +10,9 @@ A small Lua extension library with crypto and compression functions
 	added base58 encode/decode
 150701 
 	replaced nacl-unknown with tweetnacl-20140427, incl sha512
-	moved nacl to its own module ("tweetnacl")
+	moved nacl to its own module ("luatweetnacl")
 150628
-	added nacl (unknown source, ca. 2008)
+	added nacl (nacl-unknown, ca. 2008)
 150624
 	test lzf to replace gzip (lzf is much smaller, albeit less efficient)
 110622
@@ -26,7 +26,7 @@ A small Lua extension library with crypto and compression functions
 
 */
 
-#define LUAZEN_VERSION "luazen-0.5"
+#define LUAZEN_VERSION "luazen-0.6"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -67,7 +67,7 @@ A small Lua extension library with crypto and compression functions
 
 // lzf compression functions
 
-static int luazen_compress(lua_State *L) {
+static int luazen_lzf(lua_State *L) {
     size_t sln, bufln; 
     unsigned int dstln;
     const char *s = luaL_checklstring (L, 1, &sln);
@@ -97,7 +97,7 @@ static int luazen_compress(lua_State *L) {
     return 1;    
 }
 
-static int luazen_uncompress(lua_State *L) {
+static int luazen_unlzf(lua_State *L) {
     size_t sln, bufln; 
     unsigned int dstln;
     const char *s = luaL_checklstring (L, 1, &sln);
@@ -432,8 +432,8 @@ static int luazen_b58decode(lua_State *L) {
 //
 static const struct luaL_Reg luazenlib[] = {
 	{"xor", luazen_xor},
-	{"compress", luazen_compress},
-	{"uncompress", luazen_uncompress},
+	{"lzf", luazen_lzf},
+	{"unlzf", luazen_unlzf},
 	{"rc4", luazen_rc4},
 	{"rc4raw", luazen_rc4raw},
 	{"rabbit", luazen_rabbit},
@@ -450,7 +450,7 @@ static const struct luaL_Reg luazenlib[] = {
 int luaopen_luazen (lua_State *L) {
 	luaL_register (L, "luazen", luazenlib);
     // 
-    lua_pushliteral (L, "_VERSION");
+    lua_pushliteral (L, "VERSION");
 	lua_pushliteral (L, LUAZEN_VERSION); 
 	lua_settable (L, -3);
 	return 1;
