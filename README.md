@@ -11,9 +11,9 @@ Cryptographic functions include **md5**, **sha1**, **rc4** and **rabbit**
 
 Rabbit is a very fast stream cipher (faster and much stronger than rc4). It was one of the four eSTREAM finalists in 2008. See the rabbit presentation pages at eSTREAM and at ECRYPT II [1][2].  Rabbit was also specified in RFC 4503 [3]
 
-	[1]  http://www.ecrypt.eu.org/stream/rabbitpf.html
-	[2]  http://www.ecrypt.eu.org/stream/e2-rabbit.html.
-	[3]  http://www.ietf.org/rfc/rfc4503.txt
+[1]  http://www.ecrypt.eu.org/stream/rabbitpf.html   
+[2]  http://www.ecrypt.eu.org/stream/e2-rabbit.html   
+[3]  http://www.ietf.org/rfc/rfc4503.txt   
 
 
 ### API
