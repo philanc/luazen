@@ -12,11 +12,11 @@ AR= ar
 CFLAGS= -Os -fPIC $(INCFLAGS) 
 LDFLAGS= -fPIC
 
-LUATWEETNACL_O= luatweetnacl.o randombytes.o tweetnacl.o
+LUAZEN_O= luazen.o base58.o lzf_c.o lzf_d.o md5.o rabbit.o rc4.o sha1.o
 
-tweetnacl.so:  *.c *.h
-	$(CC) -c $(CFLAGS) *.c
-	$(CC) -shared $(LDFLAGS) -o luatweetnacl.so $(LUATWEETNACL_O)
+luazen.so:  src/*.c src/*.h
+	$(CC) -c $(CFLAGS) src/*.c
+	$(CC) -shared $(LDFLAGS) -o luazen.so $(LUAZEN_O)
 
 clean:
 	rm -f *.o *.a *.so

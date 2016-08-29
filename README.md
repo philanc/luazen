@@ -5,7 +5,7 @@ cryptographic functions. All the functions work on strings, there is no stream o
 
 The compression functions are based on the tiny **lzf** library. It is not as efficient as gzip, but much smaller.
 
-Endoding and decoding functions are provided for **Base64** and **Base58** (for Base58, the BitCoin encoding alphabet is used)
+Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used)
 
 Cryptographic functions include **md5**, **sha1**, **rc4** and **rabbit**
 
