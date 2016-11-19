@@ -7,9 +7,7 @@ The compression functions are based on the tiny **lzf** library. It is not as ef
 
 Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used)
 
-Cryptographic functions include **md5**, **sha1**, **rc4** and **rabbit**
-
-Rabbit is a very fast stream cipher (faster and much stronger than rc4). It was one of the four eSTREAM finalists in 2008. See the rabbit presentation pages at [eSTREAM](http://www.ecrypt.eu.org/stream/rabbitpf.html) and at [ECRYPT II](http://www.ecrypt.eu.org/stream/e2-rabbit.html).  Rabbit was also specified in [RFC 4503](http://www.ietf.org/rfc/rfc4503.txt)
+Cryptographic functions include **md5**, **sha1**, and **rc4**.
 
 ### API
 ```
@@ -74,15 +72,6 @@ rc4(str, key)
 	arguments and return are the same as rc4raw()
 	key length must be 16 (or nil, error msg is returned)
 
-rabbit(str, key, iv)
-	encrypt (or decrypt, as rabbit is symmetric) string str with 
-	key string key and initial value string iv.
-	key must be 16 bytes. iv must be 8 bytes
-	return the encrypted string (same length as str)
-	or nil, error msg if the key or iv lengths are not correct
-	-- for more information and references on rabbit, see the comment 
-	at the top of src/luazen/rabbit.c
-
 md5(str)
 	return the md5 hash of string str as a binary string
 	(no hex encoding)
@@ -101,7 +90,6 @@ The luazen library includes some code from various authors (see src/):
 - base58 functions by Luke Dashjr (MIT)
 - md5, sha1 by Cameron Rich (BSD)
 - lzf functions by  Marc Alexander Lehmann (BSD, see src/lzf* headers)
-- rabbit by Cryptico A/S (public domain, since 2008)
 
 (the code from these sources has been significantly modified - all bugs are probably mine!)
 

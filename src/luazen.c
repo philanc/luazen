@@ -2,31 +2,15 @@
 // ---------------------------------------------------------------------
 /*  luazen
 
-A small Lua extension library with crypto and compression functions
-(stuff that is very slow and inefficient when done in pure Lua...)
+A small Lua extension library with low grade crypto and compression
+functions (stuff that is very slow when done in pure Lua...).
+See README.md.
 
-160412 
-	removed hmac_md5, hmac_sha1 (rather use tweetnacl)
-	added base58 encode/decode
-150701 
-	replaced nacl-unknown with tweetnacl-20140427, incl sha512
-	moved nacl to its own module ("luatweetnacl")
-150628
-	added nacl (nacl-unknown, ca. 2008)
-150624
-	test lzf to replace gzip (lzf is much smaller, albeit less efficient)
-110622
-	added macros from roberto's lpeg for 5.1/5.2 compat
-110123
-	fixed zip "dstln must be set to buf ln upon entry" (already fixed
-	but only for unzip...)
-110122
-	fixed luaL_reg to luaL_Reg (for lua5.2)
-	fixed unzip "dstln must be set to buf ln upon entry"
+https://github.com/philanc/luazen
 
 */
 
-#define LUAZEN_VERSION "luazen-0.6"
+#define LUAZEN_VERSION "luazen-0.7"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,7 +23,6 @@ A small Lua extension library with crypto and compression functions
 #include "md5.h"
 #include "sha1.h"
 #include "base58.h"
-#include "rabbit-sync.h"
 
 //=========================================================
 // compatibility with Lua 5.2  --and lua 5.3, added 150621
@@ -202,35 +185,6 @@ static int luazen_rc4(lua_State *L) {
     return 1;
 }
 
-//----------------------------------------------------------------------
-// rabbit stream cipher
-// 
-static int luazen_rabbit(lua_State *L) {
-	// Lua:  
-	//	rabbit(plaintext, key, iv) returns encrypted text
-	//	rabbit(encrypted, key, iv) returns decrypted text
-	//	key: the encryption key - must be a 16-byte string
-	//	iv: the initial value -  must be a 8-byte string
-	//
-    size_t pln, kln, ivln; 
-    const char *p = luaL_checklstring (L, 1, &pln);
-    const char *k = luaL_checklstring (L, 2, &kln);
-    const char *iv = luaL_checklstring (L, 3, &ivln);
-	if ((kln != 16) || (ivln != 8)) {
-		lua_pushnil (L);
-		lua_pushliteral (L, 
-			"luazen: rabbit key and iv must be 16 and 8 bytes");
-		return 2;         
-	}
-	char * e = malloc(pln); // buffer for encrypted text
-	ECRYPT_ctx ctx;
-	ECRYPT_keysetup(&ctx, k, 16, 8);
-	ECRYPT_ivsetup(&ctx, iv);
-	ECRYPT_process_bytes(0, &ctx, p, e, pln); // 1st param is ignored
-    lua_pushlstring (L, e, pln); 
-    free(e);
-    return 1;
-}
 
 
 //----------------------------------------------------------------------
@@ -364,9 +318,6 @@ static int luazen_b64decode(lua_State *L)		/** decode(s) */
 			}
 			luaL_pushresult(&b);
 			return 1;
-		//~ case 0:
-			//~ luaL_pushresult(&b);
-			//~ return 1;
 		case '\n': case '\r': case '\t': case ' ': case '\f': case '\b':
 			break;
 		} //switch(c)
@@ -412,9 +363,7 @@ static int luazen_b58decode(lua_State *L) {
 	bufsz = eln; // more than enough!
 	unsigned char *buf = malloc(bufsz); 
 	bln = bufsz; // give the result buffer size to b58tobin
-	//~ printf("dec bef eln=%d  bln=%d  \n", eln, bln);
 	bool r = b58tobin(buf, &bln, e, eln);
-	//~ printf("dec aft eln=%d  bln=%d  \n", eln, bln);
 	if (!r) { 
 		free(buf); 
 		lua_pushnil (L);
@@ -436,7 +385,6 @@ static const struct luaL_Reg luazenlib[] = {
 	{"unlzf", luazen_unlzf},
 	{"rc4", luazen_rc4},
 	{"rc4raw", luazen_rc4raw},
-	{"rabbit", luazen_rabbit},
 	{"md5", luazen_md5},
 	{"sha1", luazen_sha1},
 	{"b64encode",	luazen_b64encode},

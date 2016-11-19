@@ -62,14 +62,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE
 
-------------------------------------------------------------------------
---- rabbit
-
-Original author/copyright owner: Cryptico A/S
-Released into the public domain in 2008.
-see http://www.ecrypt.eu.org/stream/phase3ip.html#rabbit
-see also the rabbit.c header.
-
-
 
 ```
