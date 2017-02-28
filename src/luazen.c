@@ -10,10 +10,11 @@ https://github.com/philanc/luazen
 
 */
 
-#define LUAZEN_VERSION "luazen-0.7"
+#define LUAZEN_VERSION "luazen-0.8"
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "lua.h"
@@ -60,13 +61,18 @@ static int luazen_lzf(lua_State *L) {
 		lua_pushlstring (L, s, sln); 
 		return 1;  		
 	}
-    const size_t headln = sizeof(sln); 
+	// headln set to 4 for compatibility with previous 32-bit versions
+    const size_t headln = sizeof(uint32_t);  
     bufln =  sln + (sln/5) + 20 ;
     char *buf = malloc(bufln); 
     //store compressed data at dstbuf
     //1st headln bytes in buf used to store uncompressed length
     char *dstbuf = buf + headln; 
-    *((size_t *) buf) = sln;  //!!ENDIANNESS DEPENDANT!!
+	// store the original size of the string in the first headln bytes
+	// FIXME
+	// !!this is ENDIANNESS DEPENDANT!! (written for little endian platforms)
+	// also should ensure that sln < 0xffffffff (ie. can fit a uint32_t)
+    *((uint32_t *) buf) = (uint32_t) sln;  
 	dstln = bufln - headln ; //dstln must be set to buf ln upon entry
     unsigned int r = lzf_compress(s, sln, dstbuf, dstln); 
     if (r == 0) {
@@ -89,9 +95,9 @@ static int luazen_unlzf(lua_State *L) {
 		lua_pushlstring (L, s, sln); 
 		return 1;  		
 	}	
-    const size_t headln = sizeof(sln); 
+    const size_t headln = sizeof(uint32_t);
     // 1st headln bytes i s are uncompressed data length
-    bufln = (*((size_t *) s));  // !!ENDIANNESS DEPENDANT!!
+    bufln = (*((uint32_t *) s));  // !!ENDIANNESS DEPENDANT!!
 	bufln += 20 ;  // ...just in case some room needed for null at end...
     char *buf = malloc(bufln); 
     const char *src = s + headln; 

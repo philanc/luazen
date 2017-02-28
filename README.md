@@ -14,7 +14,7 @@ Cryptographic functions include **md5**, **sha1**, and **rc4**.
 --- Compression functions
 
 lzf(str)
-	compress string str
+	compress string str  (#str must be less than 4 GB)
 	return the compressed string or (nil, error message)
 
 unlzf(cstr)
