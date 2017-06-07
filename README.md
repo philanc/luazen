@@ -216,9 +216,9 @@ rc4raw(str, key) => encrypted (or decrypted) string
 	rc4(), a rc4-drop implementation, should be used instead for most uses
 
 rc4(str, key) => encrypted (or decrypted) string
-	this a rc4-drop encryption with a 256-byte drop
+	this is a rc4-drop encryption function with a 256-byte drop
 	(ie. the rc4 state is initialized by "encrypting" a 256-byte block of
-	zero bytes before strating the encyption of the string)
+	zero bytes before starting the encyption of the string)
 	arguments and return are the same as rc4raw()
 	key length must be 16 (or nil, error msg is returned)
 
