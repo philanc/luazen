@@ -1,20 +1,33 @@
+
 # luazen
 
 Luazen is a small library with various encoding, compression and 
-cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces.
+cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces (except for blake2b hash function)
 
-The compression functions are based on the tiny **lzf** library. It is not as efficient as gzip, but much smaller.
+The compression functions are based on the tiny **lzf** library (see references in the readme). It is not as efficient as gzip, but much smaller.
 
 Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used)
 
-Cryptographic functions include **md5**, **sha1**, and **rc4**.
+Cryptographic functions include:
+- **Norx** authenticated encryption with additional data (AEAD) - this is the default 64-4-1 variant (256-bit key and nonce, 4 rounds)
+- **Blake2b** cryptographic hash function
+- **Argon2i**, a modern key derivation function based on Blake2. Like 
+scrypt, it is designed to be expensive in both CPU and memory.
+- **Curve25519**-based key exchange and public key encryption,
+- **Ed25519**-based signature function using Blake2b hash instead of sha512,
+
+Legacy cryptographic functions include **md5**,  and **rc4** (a config option allows to build luazen without the legacy functions)
+
+Luazen borrows heavily to the following projects:
+- Monocypher by Loup Vaillant for the blake2b, argon2i, curve25519 and ed25519 functions,
+- Norx by Jean-Philippe Aumasson et al, for the high performance authenticated encryption functions.
 
 ### API
 ```
 --- Compression functions
 
 lzf(str)
-	compress string str  (#str must be less than 4 GB)
+	compress string str
 	return the compressed string or (nil, error message)
 
 unlzf(cstr)
@@ -56,30 +69,173 @@ xor(str, key)
 	if key is longer than str, extra key bytes are ignored.
 	if key is shorter than str, it is repeated as much as necessary.
 
---- Cryptographic functions
+--- Authenticated encryption functions (Norx encryption algorithm)
 
-rc4raw(str, key)
+aead_encrypt(encrypt(k, n, m [, ninc [, aad [, zad]]]) return c
+	k: key string (32 bytes)
+	n: nonce string (32 bytes)
+	m: message (plain text) string 
+	ninc: optional nonce increment (useful when encrypting a long message
+	     as a sequence of block). The same parameter n can be used for 
+	     the sequence. ninc is added to n for each block, so the actual
+	     nonce used for each block encryption is distinct.
+	     ninc defaults to 0 (the nonce n is used as-is)
+	aad: prefix additional data (AD) (not encrypted, prepended to the 
+	     encrypted message). default to the empty string
+	zad: suffix additional data (not encrypted, appended to the 
+	     encrypted message). default to the empty string
+	return encrypted text string c with aad prefix and zad suffix
+	(c includes the 32-byte MAC, so #c = #aad + #m + 32 + #zad)
+
+aead_decrypt(k, n, c [, ninc [, aadln [, zadln]]]) 
+	    return (m, aad, zad) | (nil, msg)
+	k: key string (32 bytes)
+	n: nonce string (32 bytes)
+	c: encrypted message string 
+	ninc: optional nonce increment (see above. defaults to 0)
+	aadln: length of the AD prefix (default to 0)
+	zadln: length of the AD suffix  (default to 0)
+	return (plain text, aad, zad) or (nil, errmsg) if MAC is not valid
+
+
+--- Curve25519-based key exchange
+
+public_key(sk) => pk
+	return the public key associated to a curve25519 secret key
+	sk is the secret key as a 32-byte string
+	pk is the associated public key as a 32-byte string
+
+keypair() => pk, sk
+	generates a pair of curve25519 keys (public key, secret key)
+	pk is the public key as a 32-byte string
+	sk is the secret key as a 32-byte string
+	
+	Note: This is a convenience function:
+		pk, sk = keypair()  --is equivalent to
+		sk = randombytes(32); pk = public_key(sk)
+
+key_exchange(sk, pk) => k
+	DH key exchange. Return a session key k used to encrypt 
+	or decrypt a text.
+	sk is the secret key of the party invoking the function 
+	("our secret key"). 
+	pk is the public key of the other party 
+	("their public key").
+	sk, pk and k are 32-byte strings
+
+
+--- Blake2b cryptographic hash
+
+blake2b_init([digest_size [, key]]) => ctx
+	initialize and return a blake2b context object
+	digest_size is the optional length of the expected digest. If provided,
+	it must be an integer between 1 and 64. It defaults to 64.
+	key is an optional key allowing to use blake2b as a MAC function.
+	If provided, key is a string with a length that must be between 
+	1 and 64. The default is no key.
+	ctx is a pointer to the blake2b context as a light userdata.
+
+blake2b_update(ctx, text_fragment)
+	update the hash with a new text fragment
+	ctx is a pointer to a blake2b context as a light userdata.
+
+blake2b_final(ctx) => digest
+	return the final value of the hash
+	ctx is a pointer to a blake2b context as a light userdata.
+	The digest is returned as a string. The length of the digest
+	has been defined at the context creation (see blake2b_init()).
+	It defaults to 64.
+
+blake2b(text) => digest
+	compute the hash of a string. 
+	Returns a 64-byte digest.
+	This is a convenience function which combines the init(), 
+	update() and final() functions above.
+
+
+--- Ed25519 signature
+
+sign_public_key(sk) => pk
+	return the public key associated to a secret key
+	sk is the secret key as a 32-byte string
+	pk is the associated public key as a 32-byte string
+
+sign_keypair() => pk, sk
+	generates a pair of ed25519 signature keys (public key, secret key)
+	pk is the public signature key as a 32-byte string
+	sk is the secret signature key as a 32-byte string
+
+	Note: This is a convenience function:
+		pk, sk = sign_keypair()  	--is equivalent to
+		sk = randombytes(32); pk = sign_public_key(sk)
+
+sign(sk, text) => sig
+	sign a text with a secret key
+	sk is the secret key as a 32-byte string
+	text is the text to sign as a string
+	Return the text signature as a 64-byte string.
+
+check(sig, pk, text) => is_valid
+	check a text signature with a public key
+	sig is the signature to verify, as a 64-byte string
+	pk is the public key as a 32-byte string
+	text is the signed text
+	Return a boolean indicating if the signature is valid or not.
+	
+	Note: curve25519 key pairs (generated with keypair())
+	cannot be used for ed25519 signature. The signature key pairs 
+	must be generated with sign_keypair().
+
+
+--- Argon2i password derivation 
+
+argon2i(pw, salt, nkb, niter) => k
+	compute a key given a password and some salt
+	This is a password key derivation function similar to scrypt.
+	It is intended to make derivation expensive in both CPU and memory.
+	pw: the password string
+	salt: some entropy as a string (typically 16 bytes)
+	nkb:  number of kilobytes used in RAM (as large as possible)
+	niter: number of iterations (as large as possible, >= 10)
+	Return k, a key string (32 bytes).
+
+	For example: on a CPU i5 M430 @ 2.27 GHz laptop,
+	with nkb=100000 (100MB) and niter=10, the derivation takes ~ 1.8 sec
+	
+	Note: this implementation has no threading support, so no parallel 
+	execution.
+
+
+--- Legacy cryptographic functions
+
+rc4raw(str, key) => encrypted (or decrypted) string
 	encrypt (or decrypt, as rc4 is symmetric) string str with string key
 	key length must be 16 (or nil, error msg is returned)
 	return the encrypted string
 	see http://en.wikipedia.org/wiki/RC4 for raw rc4 weaknesses
 	rc4(), a rc4-drop implementation, should be used instead for most uses
 
-rc4(str, key)
+rc4(str, key) => encrypted (or decrypted) string
 	this a rc4-drop encryption with a 256-byte drop
 	(ie. the rc4 state is initialized by "encrypting" a 256-byte block of
 	zero bytes before strating the encyption of the string)
 	arguments and return are the same as rc4raw()
 	key length must be 16 (or nil, error msg is returned)
 
-md5(str)
-	return the md5 hash of string str as a binary string
+md5(str) => digest
+	return the md5 hash of string str as a 16-byte binary string
 	(no hex encoding)
 
-sha1(str)
-	return the sha1 hash of string str as a binary string
-	(no hex encoding)
+
+--- Misc functions
+
+randombytes(n)
+	return a random string of length n generated by the OS RNG 
+	(linux /dev/urandom, or windows CryptGenRandom())
+
+
 ```
+
 
 ### License
 
@@ -90,14 +246,11 @@ The luazen library includes some code from various authors (see src/):
 - base58 functions by Luke Dashjr (MIT)
 - md5, sha1 by Cameron Rich (BSD)
 - lzf functions by  Marc Alexander Lehmann (BSD, see src/lzf* headers)
+- blake2b, argon2i, ed/x25519 functions by Loup Vaillant (blake2b comes from the RFC 7693 reference code; ed/x25519 taken from Supercop's ref10 implementation)
+- norx from the reference implementation by Samuel Neves and Philipp Jovanovic
 
-(the code from these sources has been significantly modified - all bugs are probably mine!)
+See src/crypto_licenses.md.
 
-Copyright (c) 2016  Phil Leblanc 
+(the code from these sources has been more or less modified - all bugs are probably mine!)
 
-
-	
-
-
-
-
+Copyright (c) 2017  Phil Leblanc 
