@@ -67,7 +67,7 @@ THE SOFTWARE
 
 The original Monocypher source code is licensed under the following terms (from the monocypher README file):
 
-```
+
 For everything *but* Blake2b:
 
   Copying and distribution of the code, with or without modification,
