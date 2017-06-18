@@ -18,9 +18,7 @@ scrypt, it is designed to be expensive in both CPU and memory.
 
 Legacy cryptographic functions include **md5**,  and **rc4** (a config option allows to build luazen without the legacy functions)
 
-Luazen borrows heavily to the following projects:
-- Monocypher by Loup Vaillant for the blake2b, argon2i, curve25519 and ed25519 functions,
-- Norx by Jean-Philippe Aumasson et al, for the high performance authenticated encryption functions.
+Luazen borrows heavily from other projects. See the License and credits section below.
 
 ### API
 ```
@@ -249,7 +247,7 @@ The luazen library includes some code from various authors (see src/):
 - base58 functions by Luke Dashjr (MIT)
 - md5 by Cameron Rich (BSD)
 
-See src/crypto_licenses.md.
+See [src/crypto_licenses.md](https://github.com/philanc/luazen/blob/master/src/crypto_licenses.md).
 
 (the code from these sources has been more or less modified - all bugs are probably mine!)
 
