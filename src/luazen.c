@@ -25,13 +25,13 @@ It includes the following algorithms
 - Blake2b cryptographic hash 
 - Argon2i key derivation 
 - curve25519 key exchange and ed25519 signature
-- LZF compression
+e- LZF compression
 - base64, base58, xor
 - legacy cryptography (md5, rc4)
 
 */
 
-#define VERSION "luazen-0.9"
+#define VERSION "luazen-0.8"
 
 #include <stdlib.h>
 #include <stdio.h>
