@@ -1,7 +1,7 @@
 
 # ----------------------------------------------------------------------
-# adjust the following to the location of your Lua include files
-# and executable
+# adjust the following to the location of your Lua directory
+# or include files and executable
 
 LUADIR= ../lua
 LUAINC= -I$(LUADIR)/include
