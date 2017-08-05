@@ -2,35 +2,35 @@
 /*
 
 This is directly extracted from the Monocypher library by Loup Vaillant.
-http://loup-vaillant.fr/projects/monocypher/   (version 0.2)
+http://loup-vaillant.fr/projects/monocypher/   
 
-All the Monocypher functions are included, except Chacha20 and Poly1305 
-(which are replaced with NORX - see luazen)
-
-The code below is copyrighted by Loup Vaillant, 2017. See LICENSE-monocypher.
-
---
-
-Modifications
+Modifications:
 - removed chacha20 and poly1305 functions
 - removed crypto_key_exchange() (because using crypto_chacha20_H())
 - added a #ifndef around argon2i to make it optional
 		(#ifndef NOARGON)
 
 20170319  - updated to Monocypher v0.6
+20170805  - updated to Monocypher v1.0.1
+
+--
+
+The code below is copyrighted by Loup Vaillant, 2017. 
+Monocypher license is included in file crypto_licenses.md
 
 */
 
 
 #include "mono.h"
 
+
 /////////////////
 /// Utilities ///
 /////////////////
 
-// By default, signatures use blake2b. SHA-512 is provided as an
-// option for full ed25519 compatibility (a must for test vectors).
-// Compile with option -DED25519_SHA512 to use with sha512 If you do
+// By default, EdDSA signatures use blake2b.  SHA-512 is provided as
+// an option for full ed25519 compatibility (a must for test vectors).
+// Compile with option -DED25519_SHA512 to use with sha512.  If you do
 // so, you must provide the "sha512" header with suitable functions.
 #ifdef ED25519_SHA512
     #include "sha512.h"
@@ -45,14 +45,19 @@ Modifications
 #define HASH_UPDATE COMBINE2(HASH, _update)
 #define HASH_FINAL  COMBINE2(HASH, _final)
 
-#define FOR(i, start, end) for (size_t i = start; i < end; i++)
-#define sv static void
-typedef  int8_t   i8;
-typedef uint8_t   u8;
+#define FOR(i, start, end) for (size_t (i) = (start); (i) < (end); (i)++)
+typedef uint8_t  u8;
 typedef uint32_t u32;
-typedef  int32_t i32;
-typedef  int64_t i64;
+typedef int32_t  i32;
+typedef int64_t  i64;
 typedef uint64_t u64;
+
+static u32 load24_le(const u8 s[3])
+{
+    return (u32)s[0]
+        | ((u32)s[1] <<  8)
+        | ((u32)s[2] << 16);
+}
 
 static u32 load32_le(const u8 s[4])
 {
@@ -74,24 +79,24 @@ static u64 load64_le(const u8 s[8])
         | ((u64)s[7] << 56);
 }
 
-sv store32_le(u8 output[4], u32 input)
+static void store32_le(u8 out[4], u32 in)
 {
-    output[0] =  input        & 0xff;
-    output[1] = (input >>  8) & 0xff;
-    output[2] = (input >> 16) & 0xff;
-    output[3] = (input >> 24) & 0xff;
+    out[0] =  in        & 0xff;
+    out[1] = (in >>  8) & 0xff;
+    out[2] = (in >> 16) & 0xff;
+    out[3] = (in >> 24) & 0xff;
 }
 
-sv store64_le(u8 output[8], u64 input)
+static void store64_le(u8 out[8], u64 in)
 {
-    output[0] =  input        & 0xff;
-    output[1] = (input >>  8) & 0xff;
-    output[2] = (input >> 16) & 0xff;
-    output[3] = (input >> 24) & 0xff;
-    output[4] = (input >> 32) & 0xff;
-    output[5] = (input >> 40) & 0xff;
-    output[6] = (input >> 48) & 0xff;
-    output[7] = (input >> 56) & 0xff;
+    out[0] =  in        & 0xff;
+    out[1] = (in >>  8) & 0xff;
+    out[2] = (in >> 16) & 0xff;
+    out[3] = (in >> 24) & 0xff;
+    out[4] = (in >> 32) & 0xff;
+    out[5] = (in >> 40) & 0xff;
+    out[6] = (in >> 48) & 0xff;
+    out[7] = (in >> 56) & 0xff;
 }
 
 static u64 rotr64(u64 x, u64 n) { return (x >> n) ^ (x << (64 - n)); }
@@ -100,16 +105,21 @@ static u32 rotl32(u32 x, u32 n) { return (x << n) ^ (x >> (32 - n)); }
 int crypto_memcmp(const u8 *p1, const u8 *p2, size_t n)
 {
     unsigned diff = 0;
-    FOR (i, 0, n) { diff |= (p1[i] ^ p2[i]); }
+    FOR (i, 0, n) {
+        diff |= (p1[i] ^ p2[i]);
+    }
     return (1 & ((diff - 1) >> 8)) - 1;
 }
 
 int crypto_zerocmp(const u8 *p, size_t n)
 {
     unsigned diff = 0;
-    FOR (i, 0, n) { diff |= p[i]; }
+    FOR (i, 0, n) {
+        diff |= p[i];
+    }
     return (1 & ((diff - 1) >> 8)) - 1;
 }
+
 
 /////////////////
 /// Chacha 20 ///  REMOVED
@@ -123,90 +133,125 @@ int crypto_zerocmp(const u8 *p, size_t n)
 /// Blake2 b /// (taken from the reference
 ////////////////  implentation in RFC 7693)
 
-// Initialization Vector.
-static const u64 blake2b_iv[8] = {
+
+////////////////
+/// Blake2 b ///
+////////////////
+static const u64 iv[8] = {
     0x6a09e667f3bcc908, 0xbb67ae8584caa73b,
     0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
     0x510e527fade682d1, 0x9b05688c2b3e6c1f,
-    0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
+    0x1f83d9abfb41bd6b, 0x5be0cd19137e2179,
 };
 
-// increment a 128-bit "word".
-sv incr(u64 x[2], u64 y)
+// increment the input offset
+static void blake2b_incr(crypto_blake2b_ctx *ctx)
 {
-    x[0] += y;                 // increment the low word
-    if (x[0] < y) { x[1]++; }  // handle overflow
+    u64   *x = ctx->input_offset;
+    size_t y = ctx->input_idx;
+    x[0] += y;
+    if (x[0] < y) {
+        x[1]++;
+    }
 }
 
-sv blake2b_compress(crypto_blake2b_ctx *ctx, int last_block)
+static void blake2b_set_input(crypto_blake2b_ctx *ctx, u8 input)
+{
+    size_t word = ctx->input_idx / 8;
+    size_t byte = ctx->input_idx % 8;
+    ctx->input[word] |= (u64)input << (byte * 8);
+    ctx->input_idx++;
+}
+
+static void blake2b_compress(crypto_blake2b_ctx *ctx, int is_last_block)
 {
     static const u8 sigma[12][16] = {
-        { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
-        { 14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3 },
-        { 11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4 },
-        { 7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8 },
-        { 9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13 },
-        { 2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9 },
-        { 12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11 },
-        { 13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10 },
-        { 6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5 },
-        { 10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0 },
-        { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
-        { 14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3 }
+        {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
+        { 14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3 },
+        { 11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4 },
+        {  7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8 },
+        {  9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13 },
+        {  2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9 },
+        { 12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11 },
+        { 13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10 },
+        {  6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5 },
+        { 10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13,  0 },
+        {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
+        { 14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3 },
     };
 
-    // init work variables (before shuffling them)
+    // init work vector
     u64 v[16];
     FOR (i, 0, 8) {
-        v[i    ] = ctx->hash[i];
-        v[i + 8] = blake2b_iv[i];
+        v[i  ] = ctx->hash[i];
+        v[i+8] = iv[i];
     }
-    v[12] ^= ctx->input_size[0]; // low 64 bits of offset
-    v[13] ^= ctx->input_size[1]; // high 64 bits
-    if (last_block) { v[14] = ~v[14]; }
+    v[12] ^= ctx->input_offset[0];
+    v[13] ^= ctx->input_offset[1];
+    if (is_last_block) {
+        v[14] = ~v[14];
+    }
 
-    // load the input buffer
-    u64 m[16];
-    FOR (i ,0, 16) { m[i] = load64_le(&ctx->buf[i * 8]); }
-
-    // shuffle the work variables with the 12 rounds
+    // mangle work vector
+    uint64_t *input = ctx->input;
     FOR (i, 0, 12) {
-#define B2B_G(a, b, c, d, x, y)                                    \
-        v[a] += v[b] + x;  v[d] ^= v[a];  v[d] = rotr64(v[d], 32); \
-        v[c] += v[d]    ;  v[b] ^= v[c];  v[b] = rotr64(v[b], 24); \
-        v[a] += v[b] + y;  v[d] ^= v[a];  v[d] = rotr64(v[d], 16); \
-        v[c] += v[d]    ;  v[b] ^= v[c];  v[b] = rotr64(v[b], 63)
+#define BLAKE2_G(v, a, b, c, d, x, y)                       \
+        v[a] += v[b] + x;  v[d] = rotr64(v[d] ^ v[a], 32);  \
+        v[c] += v[d];      v[b] = rotr64(v[b] ^ v[c], 24);  \
+        v[a] += v[b] + y;  v[d] = rotr64(v[d] ^ v[a], 16);  \
+        v[c] += v[d];      v[b] = rotr64(v[b] ^ v[c], 63);  \
 
-        B2B_G( 0, 4,  8, 12, m[sigma[i][ 0]], m[sigma[i][ 1]]);
-        B2B_G( 1, 5,  9, 13, m[sigma[i][ 2]], m[sigma[i][ 3]]);
-        B2B_G( 2, 6, 10, 14, m[sigma[i][ 4]], m[sigma[i][ 5]]);
-        B2B_G( 3, 7, 11, 15, m[sigma[i][ 6]], m[sigma[i][ 7]]);
-        B2B_G( 0, 5, 10, 15, m[sigma[i][ 8]], m[sigma[i][ 9]]);
-        B2B_G( 1, 6, 11, 12, m[sigma[i][10]], m[sigma[i][11]]);
-        B2B_G( 2, 7,  8, 13, m[sigma[i][12]], m[sigma[i][13]]);
-        B2B_G( 3, 4,  9, 14, m[sigma[i][14]], m[sigma[i][15]]);
+        BLAKE2_G(v, 0, 4,  8, 12, input[sigma[i][ 0]], input[sigma[i][ 1]]);
+        BLAKE2_G(v, 1, 5,  9, 13, input[sigma[i][ 2]], input[sigma[i][ 3]]);
+        BLAKE2_G(v, 2, 6, 10, 14, input[sigma[i][ 4]], input[sigma[i][ 5]]);
+        BLAKE2_G(v, 3, 7, 11, 15, input[sigma[i][ 6]], input[sigma[i][ 7]]);
+        BLAKE2_G(v, 0, 5, 10, 15, input[sigma[i][ 8]], input[sigma[i][ 9]]);
+        BLAKE2_G(v, 1, 6, 11, 12, input[sigma[i][10]], input[sigma[i][11]]);
+        BLAKE2_G(v, 2, 7,  8, 13, input[sigma[i][12]], input[sigma[i][13]]);
+        BLAKE2_G(v, 3, 4,  9, 14, input[sigma[i][14]], input[sigma[i][15]]);
     }
-    // accumulate the work variables into the hash
-    FOR (i, 0, 8) { ctx->hash[i] ^= v[i] ^ v[i+8]; }
+    // update hash
+    FOR (i, 0, 8) {
+        ctx->hash[i] ^= v[i] ^ v[i+8];
+    }
 }
 
-void crypto_blake2b_general_init(crypto_blake2b_ctx *ctx, size_t out_size,
+static void blake2b_reset_input(crypto_blake2b_ctx *ctx)
+{
+    FOR(i, 0, 16) {
+        ctx->input[i] = 0;
+    }
+    ctx->input_idx = 0;
+}
+
+static void blake2b_end_block(crypto_blake2b_ctx *ctx)
+{
+    if (ctx->input_idx == 128) {  // If buffer is full,
+        blake2b_incr(ctx);        // update the input offset
+        blake2b_compress(ctx, 0); // and compress the (not last) block
+        blake2b_reset_input(ctx);
+    }
+}
+
+void crypto_blake2b_general_init(crypto_blake2b_ctx *ctx, size_t hash_size,
                                  const u8           *key, size_t key_size)
 {
-    // Initial hash == initialization vector...
-    FOR (i, 0, 8) { ctx->hash[i] = blake2b_iv[i]; }
-    ctx->hash[0] ^= 0x01010000 ^ (key_size << 8) ^ out_size;  // ...mostly
+    // initial hash
+    FOR (i, 0, 8) {
+        ctx->hash[i] = iv[i];
+    }
+    ctx->hash[0] ^= 0x01010000 ^ (key_size << 8) ^ hash_size;
 
-    ctx->input_size[0] = 0;       // input count low word
-    ctx->input_size[1] = 0;       // input count high word
-    ctx->c             = 0;       // pointer within buffer
-    ctx->output_size   = out_size;  // size of the final hash
+    ctx->input_offset[0] = 0;         // begining of the input, no offset
+    ctx->input_offset[1] = 0;         // begining of the input, no offset
+    ctx->input_idx       = 0;         // buffer is empty
+    ctx->hash_size       = hash_size; // remember the hash size we want
+    blake2b_reset_input(ctx);         // clear the input buffer
 
-    // If there's a key, put it in the first block, then pad with zeroes
+    // if there is a key, the first block is that key
     if (key_size > 0) {
-        FOR (i, 0     , key_size) { ctx->buf[i] = key[i]; }
-        FOR (i, key_size, 128   ) { ctx->buf[i] = 0;      }
-        ctx->c = 128; // mark the block as used
+        crypto_blake2b_update(ctx, key, key_size);
+        ctx->input_idx = 128;
     }
 }
 
@@ -215,48 +260,61 @@ void crypto_blake2b_init(crypto_blake2b_ctx *ctx)
     crypto_blake2b_general_init(ctx, 64, 0, 0);
 }
 
-void crypto_blake2b_update(crypto_blake2b_ctx *ctx, const u8 *in, size_t in_size)
+void crypto_blake2b_update(crypto_blake2b_ctx *ctx,
+                           const u8 *message, size_t message_size)
 {
-    FOR (i, 0, in_size) {
-        // If the buffer is full, increment the counters and
-        // add (compress) the current buffer to the hash
-        if (ctx->c == 128) {
-            ctx->c = 0;
-            incr(ctx->input_size, 128);
-            blake2b_compress(ctx, 0); // not last time -> 0
-        }
-        // By now the buffer is not full.  We add one input byte.
-        ctx->buf[ctx->c] = in[i];
-        ctx->c++;
+    // Align ourselves with 8 byte words
+    while (ctx->input_idx % 8 != 0 && message_size > 0) {
+        blake2b_set_input(ctx, *message);
+        message++;
+        message_size--;
+    }
+
+    // Process the input 8 bytes at a time
+    size_t nb_words  = message_size / 8;
+    size_t remainder = message_size % 8;
+    FOR (i, 0, nb_words) {
+        blake2b_end_block(ctx);
+        ctx->input[ctx->input_idx / 8] = load64_le(message);
+        message        += 8;
+        ctx->input_idx += 8;
+    }
+
+    // Load the remainder
+    if (remainder != 0) {
+        blake2b_end_block(ctx);
+    }
+    FOR (i, 0, remainder) {
+        blake2b_set_input(ctx, message[i]);
     }
 }
 
-void crypto_blake2b_final(crypto_blake2b_ctx *ctx, u8 *out)
+void crypto_blake2b_final(crypto_blake2b_ctx *ctx, u8 *hash)
 {
-    // update input size, pad then compress the buffer
-    incr(ctx->input_size, ctx->c);
-    FOR (i, ctx->c, 128) { ctx->buf[i] = 0; }
-    blake2b_compress(ctx, 1); // last time -> 1
-
-    // copy the hash in the output (little endian of course)
-    FOR (i, 0, ctx->output_size) {
-        out[i] = (ctx->hash[i / 8] >> (8 * (i & 7))) & 0xff;
+    blake2b_incr(ctx);        // update the input offset
+    blake2b_compress(ctx, 1); // compress the last block
+    size_t nb_words  = ctx->hash_size / 8;
+    FOR (i, 0, nb_words) {
+        store64_le(hash + i*8, ctx->hash[i]);
+    }
+    FOR (i, nb_words * 8, ctx->hash_size) {
+        hash[i] = (ctx->hash[i / 8] >> (8 * (i % 8))) & 0xff;
     }
 }
 
-void crypto_blake2b_general(u8       *out, size_t out_size,
-                            const u8 *key, size_t key_size,
-                            const u8 *in,  size_t in_size)
+void crypto_blake2b_general(u8       *hash   , size_t hash_size,
+                            const u8 *key    , size_t key_size,
+                            const u8 *message, size_t message_size)
 {
     crypto_blake2b_ctx ctx;
-    crypto_blake2b_general_init(&ctx, out_size, key, key_size);
-    crypto_blake2b_update(&ctx, in, in_size);
-    crypto_blake2b_final(&ctx, out);
+    crypto_blake2b_general_init(&ctx, hash_size, key, key_size);
+    crypto_blake2b_update(&ctx, message, message_size);
+    crypto_blake2b_final(&ctx, hash);
 }
 
-void crypto_blake2b(u8 out[64], const u8 *in, size_t in_size)
+void crypto_blake2b(u8 hash[64], const u8 *message, size_t message_size)
 {
-    crypto_blake2b_general(out, 64, 0, 0, in, in_size);
+    crypto_blake2b_general(hash, 64, 0, 0, message, message_size);
 }
 
 
@@ -267,39 +325,45 @@ void crypto_blake2b(u8 out[64], const u8 *in, size_t in_size)
 ///  allow to build without Argon2i function
 #ifndef NOARGON
 
-
 // references to R, Z, Q etc. come from the spec
 
-typedef struct { u64 a[128]; } block; // 1024 octets
+// Argon2 operates on 1024 byte blocks.
+typedef struct { u64 a[128]; } block;
 
 static u32 min(u32 a, u32 b) { return a <= b ? a : b; }
 
 // updates a blake2 hash with a 32 bit word, little endian.
-sv blake_update_32(crypto_blake2b_ctx *ctx, u32 input)
+static void blake_update_32(crypto_blake2b_ctx *ctx, u32 input)
 {
     u8 buf[4];
     store32_le(buf, input);
     crypto_blake2b_update(ctx, buf, 4);
 }
 
-sv load_block(block *b, const u8 bytes[1024])
+static void load_block(block *b, const u8 bytes[1024])
 {
-    FOR (i, 0, 128) { b->a[i] = load64_le(bytes + i*8); }
+    FOR (i, 0, 128) {
+        b->a[i] = load64_le(bytes + i*8);
+    }
 }
 
-sv store_block(u8 bytes[1024], const block *b)
+static void store_block(u8 bytes[1024], const block *b)
 {
-    FOR (i, 0, 128) { store64_le(bytes + i*8, b->a[i]); }
+    FOR (i, 0, 128) {
+        store64_le(bytes + i*8, b->a[i]);
+    }
 }
 
-sv copy_block(block *o, const block *in) { FOR (i, 0, 128) o->a[i]  = in->a[i]; }
-sv  xor_block(block *o, const block *in) { FOR (i, 0, 128) o->a[i] ^= in->a[i]; }
+static void copy_block(block *o,const block*in){FOR(i,0,128) o->a[i] = in->a[i];}
+static void  xor_block(block *o,const block*in){FOR(i,0,128) o->a[i]^= in->a[i];}
 
 // Hash with a virtually unlimited digest size.
 // Doesn't extract more entropy than the base hash function.
 // Mainly used for filling a whole kilobyte block with pseudo-random bytes.
-sv extended_hash(u8       *digest, u32 digest_size,
-                 const u8 *input , u32 input_size)
+// (One could use a stream cipher with a seed hash as the key, but
+//  this would introduce another dependency —and point of failure.)
+static void extended_hash(u8       *digest, u32 digest_size,
+                          const u8 *input , u32 input_size)
 {
     crypto_blake2b_ctx ctx;
     crypto_blake2b_general_init(&ctx, min(digest_size, 64), 0, 0);
@@ -341,7 +405,7 @@ sv extended_hash(u8       *digest, u32 digest_size,
     G(v2, v7,  v8, v13);  G(v3, v4,  v9, v14)
 
 // Core of the compression function G.  Computes Z from R in place.
-sv g_rounds(block *work_block)
+static void g_rounds(block *work_block)
 {
     // column rounds (work_block = Q)
     for (int i = 0; i < 128; i += 16) {
@@ -367,24 +431,32 @@ sv g_rounds(block *work_block)
     }
 }
 
-// The compression function G
-// may overwrite result completely  (xcopy == copy_block),
-// or XOR result with the old block (xcopy ==  xor_block)
-sv binary_g(block *result, const block *x, const block *y,
-            void (*xcopy) (block*, const block*))
+// The compression function G (copy version for the first pass)
+static void g_copy(block *result, const block *x, const block *y)
 {
     block tmp;
-    copy_block(&tmp, x);     // tmp    = X
-    xor_block (&tmp, y);     // tmp    = X ^ Y = R
-    xcopy(result, &tmp);     // result = R     (or R ^ old)
-    g_rounds(&tmp);          // tmp    = Z
-    xor_block(result, &tmp); // result = R ^ Z (or R ^ old ^ Z)
+    copy_block(&tmp  , x   ); // tmp    = X
+    xor_block (&tmp  , y   ); // tmp    = X ^ Y = R
+    copy_block(result, &tmp); // result = R         (only difference with g_xor)
+    g_rounds  (&tmp);         // tmp    = Z
+    xor_block (result, &tmp); // result = R ^ Z
+}
+
+// The compression function G (xor version for subsequent passes)
+static void g_xor(block *result, const block *x, const block *y)
+{
+    block tmp;
+    copy_block(&tmp  , x   ); // tmp    = X
+    xor_block (&tmp  , y   ); // tmp    = X ^ Y = R
+    xor_block (result, &tmp); // result = R ^ old   (only difference with g_copy)
+    g_rounds  (&tmp);         // tmp    = Z
+    xor_block (result, &tmp); // result = R ^ old ^ Z
 }
 
 // unary version of the compression function.
 // The missing argument is implied zero.
 // Does the transformation in place.
-sv unary_g(block *work_block)
+static void unary_g(block *work_block)
 {
     // work_block == R
     block tmp;
@@ -393,14 +465,25 @@ sv unary_g(block *work_block)
     xor_block(work_block, &tmp);  // work_block = Z ^ R
 }
 
+// Argon2i uses a kind of stream cipher to determine which reference
+// block it will take to synthesise the next block.  This context hold
+// that stream's state.  (It's very similar to Chacha20.  The block b
+// is anologous to Chacha's own pool)
 typedef struct {
     block b;
-    u32 pass_number; u32 slice_number;
-    u32 nb_blocks; u32 nb_iterations;
-    u32 ctr; u32 offset;
+    u32 pass_number;
+    u32 slice_number;
+    u32 nb_blocks;
+    u32 nb_iterations;
+    u32 ctr;
+    u32 offset;
 } gidx_ctx;
 
-sv gidx_refresh(gidx_ctx *ctx)
+// The block in the context will determine array indices. To avoid
+// timing attacks, it only depends on public information.  No looking
+// at a previous block to seed the next.  This makes offline attacks
+// easier, but timing attacks are the bigger threat in many settings.
+static void gidx_refresh(gidx_ctx *ctx)
 {
     // seed the begining of the block...
     ctx->b.a[0] = ctx->pass_number;
@@ -418,9 +501,9 @@ sv gidx_refresh(gidx_ctx *ctx)
     unary_g(&(ctx->b));
 }
 
-sv gidx_init(gidx_ctx *ctx,
-             u32 pass_number, u32 slice_number,
-             u32 nb_blocks,   u32 nb_iterations)
+static void gidx_init(gidx_ctx *ctx,
+                      u32 pass_number, u32 slice_number,
+                      u32 nb_blocks,   u32 nb_iterations)
 {
     ctx->pass_number   = pass_number;
     ctx->slice_number  = slice_number;
@@ -429,7 +512,7 @@ sv gidx_init(gidx_ctx *ctx,
     ctx->ctr           = 0;
 
     // Offset from the begining of the segment.  For the first slice
-    // of the firs pass, we start at the *third* block, so the offset
+    // of the first pass, we start at the *third* block, so the offset
     // starts at 2, not 0.
     if (pass_number != 0 || slice_number != 0) {
         ctx->offset = 0;
@@ -457,29 +540,27 @@ static u32 gidx_next(gidx_ctx *ctx)
     // Pass 1+: 3 last segments plus already constructed
     //          blocks in this segment.  THE SPEC SUGGESTS OTHERWISE.
     //          I CONFORM TO THE REFERENCE IMPLEMENTATION.
-    int first_pass = ctx->pass_number == 0;
-    u32 slice_size = ctx->nb_blocks / 4;
-    u32 area_size  = ((first_pass ? ctx->slice_number : 3)
-                      * slice_size + offset - 1);
+    int first_pass  = ctx->pass_number == 0;
+    u32 slice_size  = ctx->nb_blocks / 4;
+    u32 nb_segments = first_pass ? ctx->slice_number : 3;
+    u32 area_size   = nb_segments * slice_size + offset - 1;
 
     // Computes the starting position of the reference area.
     // CONTRARY TO WHAT THE SPEC SUGGESTS, IT STARTS AT THE
     // NEXT SEGMENT, NOT THE NEXT BLOCK.
-    u32 next_slice = (ctx->slice_number == 3
-                      ? 0
-                      : (ctx->slice_number + 1) * slice_size);
+    u32 next_slice = ((ctx->slice_number + 1) % 4) * slice_size;
     u32 start_pos  = first_pass ? 0 : next_slice;
 
     // Generate offset from J1 (no need for J2, there's only one lane)
     u64 j1         = ctx->b.a[index] & 0xffffffff; // pseudo-random number
     u64 x          = (j1 * j1)       >> 32;
     u64 y          = (area_size * x) >> 32;
-    u64 z          = area_size - 1 - y;
+    u64 z          = (area_size - 1) - y;
     return (start_pos + z) % ctx->nb_blocks;
 }
 
 // Main algorithm
-void crypto_argon2i(u8       *tag,       u32 tag_size,
+void crypto_argon2i(u8       *hash,      u32 hash_size,
                     void     *work_area, u32 nb_blocks, u32 nb_iterations,
                     const u8 *password,  u32 password_size,
                     const u8 *salt,      u32 salt_size,
@@ -493,7 +574,7 @@ void crypto_argon2i(u8       *tag,       u32 tag_size,
         crypto_blake2b_init(&ctx);
 
         blake_update_32      (&ctx, 1            ); // p: number of threads
-        blake_update_32      (&ctx, tag_size     );
+        blake_update_32      (&ctx, hash_size    );
         blake_update_32      (&ctx, nb_blocks    );
         blake_update_32      (&ctx, nb_iterations);
         blake_update_32      (&ctx, 0x13         ); // v: version number
@@ -531,9 +612,7 @@ void crypto_argon2i(u8       *tag,       u32 tag_size,
 
     // fill (then re-fill) the rest of the blocks
     FOR (pass_number, 0, nb_iterations) {
-        int first_pass  = pass_number == 0;
-        // Simple copy on pass 0, XOR instead of overwrite on subsequent passes
-        void (*xcopy) (block*, const block*) = first_pass ?copy_block :xor_block;
+        int first_pass = pass_number == 0;
 
         FOR (segment, 0, 4) {
             gidx_ctx ctx;
@@ -542,25 +621,28 @@ void crypto_argon2i(u8       *tag,       u32 tag_size,
             // On the first segment of the first pass,
             // blocks 0 and 1 are already filled.
             // We use the offset to skip them.
-            u32 offset = first_pass && segment == 0 ? 2 : 0;
-            // current, reference, and previous are block indices
-            FOR (current,
-                 segment * segment_size + offset,
-                 (segment + 1) * segment_size) {
-                u32 previous  = current == 0 ? nb_blocks - 1 : current - 1;
-                u32 reference = gidx_next(&ctx);
-                binary_g(blocks + current,
-                         blocks + previous,
-                         blocks + reference,
-                         xcopy);
+            u32 start_offset  = first_pass && segment == 0 ? 2 : 0;
+            u32 segment_start = segment * segment_size + start_offset;
+            u32 segment_end   = (segment + 1) * segment_size;
+            FOR (current_block, segment_start, segment_end) {
+                u32 reference_block = gidx_next(&ctx);
+                u32 previous_block  = current_block == 0
+                                    ? nb_blocks - 1
+                                    : current_block - 1;
+                block *c = blocks + current_block;
+                block *p = blocks + previous_block;
+                block *r = blocks + reference_block;
+                if (first_pass) { g_copy(c, p, r); }
+                else            { g_xor (c, p, r); }
             }
         }
     }
-    // hash the very last block with H' into the output tag
+    // hash the very last block with H' into the output hash
     u8 final_block[1024];
     store_block(final_block, blocks + (nb_blocks - 1));
-    extended_hash(tag, tag_size, final_block, 1024);
+    extended_hash(hash, hash_size, final_block, 1024);
 }
+
 
 #endif /// NOARGON
 
@@ -568,20 +650,21 @@ void crypto_argon2i(u8       *tag,       u32 tag_size,
 ////////////////////////////////////
 /// Arithmetic modulo 2^255 - 19 ///
 ////////////////////////////////////
+
 //  Taken from Supercop's ref10 implementation.
-//  A bit bigger than TweetNaCl, over 6 times faster.
+//  A bit bigger than TweetNaCl, over 4 times faster.
 
 // field element
 typedef i32 fe[10];
 
-sv fe_0   (fe h) {                         FOR (i, 0, 10) h[i] = 0;           }
-sv fe_1   (fe h) {              h[0] = 1;  FOR (i, 1, 10) h[i] = 0;           }
-sv fe_neg (fe h, const fe f)             { FOR (i, 0, 10) h[i] = -f[i];       }
-sv fe_add (fe h, const fe f, const fe g) { FOR (i, 0, 10) h[i] = f[i] + g[i]; }
-sv fe_sub (fe h, const fe f, const fe g) { FOR (i, 0, 10) h[i] = f[i] - g[i]; }
-sv fe_copy(fe h, const fe f            ) { FOR (i, 0, 10) h[i] = f[i];        }
+static void fe_0   (fe h) {                     FOR(i,0,10) h[i] = 0;          }
+static void fe_1   (fe h) {          h[0] = 1;  FOR(i,1,10) h[i] = 0;          }
+static void fe_neg (fe h,const fe f)           {FOR(i,0,10) h[i] = -f[i];      }
+static void fe_add (fe h,const fe f,const fe g){FOR(i,0,10) h[i] = f[i] + g[i];}
+static void fe_sub (fe h,const fe f,const fe g){FOR(i,0,10) h[i] = f[i] - g[i];}
+static void fe_copy(fe h,const fe f)           {FOR(i,0,10) h[i] = f[i];       }
 
-sv fe_cswap(fe f, fe g, u32 b)
+static void fe_cswap(fe f, fe g, int b)
 {
     FOR (i, 0, 10) {
         i32 x = (f[i] ^ g[i]) & -b;
@@ -590,30 +673,23 @@ sv fe_cswap(fe f, fe g, u32 b)
     }
 }
 
-static u32 load24_le(const u8 s[3])
-{
-    return (u32)s[0]
-        | ((u32)s[1] <<  8)
-        | ((u32)s[2] << 16);
-}
-
-sv fe_carry(fe h, i64 t[10])
+static void fe_carry(fe h, i64 t[10])
 {
     i64 c0, c1, c2, c3, c4, c5, c6, c7, c8, c9;
-    c9 = (t[9] + (i64) (1<<24)) >> 25; t[0] += c9 * 19; t[9] -= (u64)c9 << 25;
-    c1 = (t[1] + (i64) (1<<24)) >> 25; t[2] += c1;      t[1] -= (u64)c1 << 25;
-    c3 = (t[3] + (i64) (1<<24)) >> 25; t[4] += c3;      t[3] -= (u64)c3 << 25;
-    c5 = (t[5] + (i64) (1<<24)) >> 25; t[6] += c5;      t[5] -= (u64)c5 << 25;
-    c7 = (t[7] + (i64) (1<<24)) >> 25; t[8] += c7;      t[7] -= (u64)c7 << 25;
-    c0 = (t[0] + (i64) (1<<25)) >> 26; t[1] += c0;      t[0] -= (u64)c0 << 26;
-    c2 = (t[2] + (i64) (1<<25)) >> 26; t[3] += c2;      t[2] -= (u64)c2 << 26;
-    c4 = (t[4] + (i64) (1<<25)) >> 26; t[5] += c4;      t[4] -= (u64)c4 << 26;
-    c6 = (t[6] + (i64) (1<<25)) >> 26; t[7] += c6;      t[6] -= (u64)c6 << 26;
-    c8 = (t[8] + (i64) (1<<25)) >> 26; t[9] += c8;      t[8] -= (u64)c8 << 26;
+    c9 = (t[9] + (i64) (1<<24)) >> 25; t[0] += c9 * 19; t[9] -= c9 * (1 << 25);
+    c1 = (t[1] + (i64) (1<<24)) >> 25; t[2] += c1;      t[1] -= c1 * (1 << 25);
+    c3 = (t[3] + (i64) (1<<24)) >> 25; t[4] += c3;      t[3] -= c3 * (1 << 25);
+    c5 = (t[5] + (i64) (1<<24)) >> 25; t[6] += c5;      t[5] -= c5 * (1 << 25);
+    c7 = (t[7] + (i64) (1<<24)) >> 25; t[8] += c7;      t[7] -= c7 * (1 << 25);
+    c0 = (t[0] + (i64) (1<<25)) >> 26; t[1] += c0;      t[0] -= c0 * (1 << 26);
+    c2 = (t[2] + (i64) (1<<25)) >> 26; t[3] += c2;      t[2] -= c2 * (1 << 26);
+    c4 = (t[4] + (i64) (1<<25)) >> 26; t[5] += c4;      t[4] -= c4 * (1 << 26);
+    c6 = (t[6] + (i64) (1<<25)) >> 26; t[7] += c6;      t[6] -= c6 * (1 << 26);
+    c8 = (t[8] + (i64) (1<<25)) >> 26; t[9] += c8;      t[8] -= c8 * (1 << 26);
     FOR (i, 0, 10) { h[i] = t[i]; }
 }
 
-sv fe_frombytes(fe h, const u8 s[32])
+static void fe_frombytes(fe h, const u8 s[32])
 {
     i64 t[10]; // intermediate result (may overflow 32 bits)
     t[0] =  load32_le(s);
@@ -629,14 +705,18 @@ sv fe_frombytes(fe h, const u8 s[32])
     fe_carry(h, t);
 }
 
-sv fe_mul121666(fe h, const fe f)
+static void fe_mul_small(fe h, const fe f, i32 g)
 {
     i64 t[10];
-    FOR(i, 0, 10) { t[i] = f[i] * (i64) 121666; }
+    FOR(i, 0, 10) {
+        t[i] = f[i] * (i64) g;
+    }
     fe_carry(h, t);
 }
+static void fe_mul121666(fe h, const fe f) { fe_mul_small(h, f, 121666); }
+static void fe_mul973324(fe h, const fe f) { fe_mul_small(h, f, 973324); }
 
-sv fe_mul(fe h, const fe f, const fe g)
+static void fe_mul(fe h, const fe f, const fe g)
 {
     // Everything is unrolled and put in temporary variables.
     // We could roll the loop, but that would make curve25519 twice as slow.
@@ -670,47 +750,104 @@ sv fe_mul(fe h, const fe f, const fe g)
     i64 h9 = f0*(i64)g9 + f1*(i64)g8 + f2*(i64)g7 + f3*(i64)g6 + f4*(i64)g5
         +    f5*(i64)g4 + f6*(i64)g3 + f7*(i64)g2 + f8*(i64)g1 + f9*(i64)g0;
 
-    i64 c0, c1, c2, c3, c4, c5, c6, c7, c8, c9;
-    c0 = (h0 + (i64) (1<<25)) >> 26; h1 += c0;      h0 -= (u64)c0 << 26;
-    c4 = (h4 + (i64) (1<<25)) >> 26; h5 += c4;      h4 -= (u64)c4 << 26;
-    c1 = (h1 + (i64) (1<<24)) >> 25; h2 += c1;      h1 -= (u64)c1 << 25;
-    c5 = (h5 + (i64) (1<<24)) >> 25; h6 += c5;      h5 -= (u64)c5 << 25;
-    c2 = (h2 + (i64) (1<<25)) >> 26; h3 += c2;      h2 -= (u64)c2 << 26;
-    c6 = (h6 + (i64) (1<<25)) >> 26; h7 += c6;      h6 -= (u64)c6 << 26;
-    c3 = (h3 + (i64) (1<<24)) >> 25; h4 += c3;      h3 -= (u64)c3 << 25;
-    c7 = (h7 + (i64) (1<<24)) >> 25; h8 += c7;      h7 -= (u64)c7 << 25;
-    c4 = (h4 + (i64) (1<<25)) >> 26; h5 += c4;      h4 -= (u64)c4 << 26;
-    c8 = (h8 + (i64) (1<<25)) >> 26; h9 += c8;      h8 -= (u64)c8 << 26;
-    c9 = (h9 + (i64) (1<<24)) >> 25; h0 += c9 * 19; h9 -= (u64)c9 << 25;
-    c0 = (h0 + (i64) (1<<25)) >> 26; h1 += c0;      h0 -= (u64)c0 << 26;
+#define CARRY                                                             \
+    i64 c0, c1, c2, c3, c4, c5, c6, c7, c8, c9;                           \
+    c0 = (h0 + (i64) (1<<25)) >> 26; h1 += c0;      h0 -= c0 * (1 << 26); \
+    c4 = (h4 + (i64) (1<<25)) >> 26; h5 += c4;      h4 -= c4 * (1 << 26); \
+    c1 = (h1 + (i64) (1<<24)) >> 25; h2 += c1;      h1 -= c1 * (1 << 25); \
+    c5 = (h5 + (i64) (1<<24)) >> 25; h6 += c5;      h5 -= c5 * (1 << 25); \
+    c2 = (h2 + (i64) (1<<25)) >> 26; h3 += c2;      h2 -= c2 * (1 << 26); \
+    c6 = (h6 + (i64) (1<<25)) >> 26; h7 += c6;      h6 -= c6 * (1 << 26); \
+    c3 = (h3 + (i64) (1<<24)) >> 25; h4 += c3;      h3 -= c3 * (1 << 25); \
+    c7 = (h7 + (i64) (1<<24)) >> 25; h8 += c7;      h7 -= c7 * (1 << 25); \
+    c4 = (h4 + (i64) (1<<25)) >> 26; h5 += c4;      h4 -= c4 * (1 << 26); \
+    c8 = (h8 + (i64) (1<<25)) >> 26; h9 += c8;      h8 -= c8 * (1 << 26); \
+    c9 = (h9 + (i64) (1<<24)) >> 25; h0 += c9 * 19; h9 -= c9 * (1 << 25); \
+    c0 = (h0 + (i64) (1<<25)) >> 26; h1 += c0;      h0 -= c0 * (1 << 26); \
+    h[0] = h0;  h[1] = h1;  h[2] = h2;  h[3] = h3;  h[4] = h4;            \
+    h[5] = h5;  h[6] = h6;  h[7] = h7;  h[8] = h8;  h[9] = h9;            \
 
-    h[0] = h0;  h[1] = h1;  h[2] = h2;  h[3] = h3;  h[4] = h4;
-    h[5] = h5;  h[6] = h6;  h[7] = h7;  h[8] = h8;  h[9] = h9;
+    CARRY;
 }
 
-sv fe_sq(fe h, const fe f) { fe_mul(h, f, f); }
-
-// power to a power of 2 minus a small number.
-// Timing depends on pow_2 and minus, so they shall not be secret.
-sv fe_power(fe out, const fe z, int pow_2, u8 minus)
+// we could use fe_mul() for this, but this is significantly faster
+static void fe_sq(fe h, const fe f)
 {
-    minus--;
-    fe c; fe_copy(c, z);
-    for (int i = pow_2 - 2; i >= 0; i--) {
-        fe_sq(c, c);
-        if (i >= 8 || !((minus >> i) & 1))
-            fe_mul(c, c, z);
-    }
-    fe_copy(out, c);
-}
-sv fe_invert  (fe out, const fe z) { fe_power(out, z, 255, 21); }
-sv fe_pow22523(fe out, const fe z) { fe_power(out, z, 252,  3); }
+    i32 f0 = f[0]; i32 f1 = f[1]; i32 f2 = f[2]; i32 f3 = f[3]; i32 f4 = f[4];
+    i32 f5 = f[5]; i32 f6 = f[6]; i32 f7 = f[7]; i32 f8 = f[8]; i32 f9 = f[9];
+    i32 f0_2  = f0*2;   i32 f1_2  = f1*2;   i32 f2_2  = f2*2;   i32 f3_2 = f3*2;
+    i32 f4_2  = f4*2;   i32 f5_2  = f5*2;   i32 f6_2  = f6*2;   i32 f7_2 = f7*2;
+    i32 f5_38 = f5*38;  i32 f6_19 = f6*19;  i32 f7_38 = f7*38;
+    i32 f8_19 = f8*19;  i32 f9_38 = f9*38;
 
-sv fe_tobytes(u8 s[32], const fe h)
+    i64 h0 = f0  *(i64)f0    + f1_2*(i64)f9_38 + f2_2*(i64)f8_19
+        +    f3_2*(i64)f7_38 + f4_2*(i64)f6_19 + f5  *(i64)f5_38;
+    i64 h1 = f0_2*(i64)f1    + f2  *(i64)f9_38 + f3_2*(i64)f8_19
+        +    f4  *(i64)f7_38 + f5_2*(i64)f6_19;
+    i64 h2 = f0_2*(i64)f2    + f1_2*(i64)f1    + f3_2*(i64)f9_38
+        +    f4_2*(i64)f8_19 + f5_2*(i64)f7_38 + f6  *(i64)f6_19;
+    i64 h3 = f0_2*(i64)f3    + f1_2*(i64)f2    + f4  *(i64)f9_38
+        +    f5_2*(i64)f8_19 + f6  *(i64)f7_38;
+    i64 h4 = f0_2*(i64)f4    + f1_2*(i64)f3_2  + f2  *(i64)f2
+        +    f5_2*(i64)f9_38 + f6_2*(i64)f8_19 + f7  *(i64)f7_38;
+    i64 h5 = f0_2*(i64)f5    + f1_2*(i64)f4    + f2_2*(i64)f3
+        +    f6  *(i64)f9_38 + f7_2*(i64)f8_19;
+    i64 h6 = f0_2*(i64)f6    + f1_2*(i64)f5_2  + f2_2*(i64)f4
+        +    f3_2*(i64)f3    + f7_2*(i64)f9_38 + f8  *(i64)f8_19;
+    i64 h7 = f0_2*(i64)f7    + f1_2*(i64)f6    + f2_2*(i64)f5
+        +    f3_2*(i64)f4    + f8  *(i64)f9_38;
+    i64 h8 = f0_2*(i64)f8    + f1_2*(i64)f7_2  + f2_2*(i64)f6
+        +    f3_2*(i64)f5_2  + f4  *(i64)f4    + f9  *(i64)f9_38;
+    i64 h9 = f0_2*(i64)f9    + f1_2*(i64)f8    + f2_2*(i64)f7
+        +    f3_2*(i64)f6    + f4  *(i64)f5_2;
+
+    CARRY;
+}
+
+// This could be simplified, but it would be slower
+static void fe_invert(fe out, const fe z)
+{
+    fe t0, t1, t2, t3;
+    fe_sq(t0, z );
+    fe_sq(t1, t0);
+    fe_sq(t1, t1);
+    fe_mul(t1,  z, t1);
+    fe_mul(t0, t0, t1);
+    fe_sq(t2, t0);                                fe_mul(t1 , t1, t2);
+    fe_sq(t2, t1); FOR (i, 1,   5) fe_sq(t2, t2); fe_mul(t1 , t2, t1);
+    fe_sq(t2, t1); FOR (i, 1,  10) fe_sq(t2, t2); fe_mul(t2 , t2, t1);
+    fe_sq(t3, t2); FOR (i, 1,  20) fe_sq(t3, t3); fe_mul(t2 , t3, t2);
+    fe_sq(t2, t2); FOR (i, 1,  10) fe_sq(t2, t2); fe_mul(t1 , t2, t1);
+    fe_sq(t2, t1); FOR (i, 1,  50) fe_sq(t2, t2); fe_mul(t2 , t2, t1);
+    fe_sq(t3, t2); FOR (i, 1, 100) fe_sq(t3, t3); fe_mul(t2 , t3, t2);
+    fe_sq(t2, t2); FOR (i, 1,  50) fe_sq(t2, t2); fe_mul(t1 , t2, t1);
+    fe_sq(t1, t1); FOR (i, 1,   5) fe_sq(t1, t1); fe_mul(out, t1, t0);
+}
+
+// This could be simplified, but it would be slower
+void fe_pow22523(fe out, const fe z)
+{
+    fe t0, t1, t2;
+    fe_sq(t0, z);
+    fe_sq(t1,t0);                   fe_sq(t1, t1);  fe_mul(t1, z, t1);
+    fe_mul(t0, t0, t1);
+    fe_sq(t0, t0);                                  fe_mul(t0, t1, t0);
+    fe_sq(t1, t0);  FOR (i, 1,   5) fe_sq(t1, t1);  fe_mul(t0, t1, t0);
+    fe_sq(t1, t0);  FOR (i, 1,  10) fe_sq(t1, t1);  fe_mul(t1, t1, t0);
+    fe_sq(t2, t1);  FOR (i, 1,  20) fe_sq(t2, t2);  fe_mul(t1, t2, t1);
+    fe_sq(t1, t1);  FOR (i, 1,  10) fe_sq(t1, t1);  fe_mul(t0, t1, t0);
+    fe_sq(t1, t0);  FOR (i, 1,  50) fe_sq(t1, t1);  fe_mul(t1, t1, t0);
+    fe_sq(t2, t1);  FOR (i, 1, 100) fe_sq(t2, t2);  fe_mul(t1, t2, t1);
+    fe_sq(t1, t1);  FOR (i, 1,  50) fe_sq(t1, t1);  fe_mul(t0, t1, t0);
+    fe_sq(t0, t0);  FOR (i, 1,   2) fe_sq(t0, t0);  fe_mul(out, t0, z);
+}
+
+static void fe_tobytes(u8 s[32], const fe h)
 {
     i32 t[10];
-    FOR (i, 0, 10) { t[i] = h[i]; }
-
+    FOR (i, 0, 10) {
+        t[i] = h[i];
+    }
     i32 q = (19 * t[9] + (((i32) 1) << 24)) >> 25;
     FOR (i, 0, 5) {
         q += t[2*i  ]; q >>= 26;
@@ -718,16 +855,16 @@ sv fe_tobytes(u8 s[32], const fe h)
     }
     t[0] += 19 * q;
 
-    i32 c0 = t[0] >> 26; t[1] += c0; t[0] -= (u64)c0 << 26;
-    i32 c1 = t[1] >> 25; t[2] += c1; t[1] -= (u64)c1 << 25;
-    i32 c2 = t[2] >> 26; t[3] += c2; t[2] -= (u64)c2 << 26;
-    i32 c3 = t[3] >> 25; t[4] += c3; t[3] -= (u64)c3 << 25;
-    i32 c4 = t[4] >> 26; t[5] += c4; t[4] -= (u64)c4 << 26;
-    i32 c5 = t[5] >> 25; t[6] += c5; t[5] -= (u64)c5 << 25;
-    i32 c6 = t[6] >> 26; t[7] += c6; t[6] -= (u64)c6 << 26;
-    i32 c7 = t[7] >> 25; t[8] += c7; t[7] -= (u64)c7 << 25;
-    i32 c8 = t[8] >> 26; t[9] += c8; t[8] -= (u64)c8 << 26;
-    i32 c9 = t[9] >> 25;             t[9] -= (u64)c9 << 25;
+    i32 c0 = t[0] >> 26; t[1] += c0; t[0] -= c0 * (1 << 26);
+    i32 c1 = t[1] >> 25; t[2] += c1; t[1] -= c1 * (1 << 25);
+    i32 c2 = t[2] >> 26; t[3] += c2; t[2] -= c2 * (1 << 26);
+    i32 c3 = t[3] >> 25; t[4] += c3; t[3] -= c3 * (1 << 25);
+    i32 c4 = t[4] >> 26; t[5] += c4; t[4] -= c4 * (1 << 26);
+    i32 c5 = t[5] >> 25; t[6] += c5; t[5] -= c5 * (1 << 25);
+    i32 c6 = t[6] >> 26; t[7] += c6; t[6] -= c6 * (1 << 26);
+    i32 c7 = t[7] >> 25; t[8] += c7; t[7] -= c7 * (1 << 25);
+    i32 c8 = t[8] >> 26; t[9] += c8; t[8] -= c8 * (1 << 26);
+    i32 c9 = t[9] >> 25;             t[9] -= c9 * (1 << 25);
 
     store32_le(s +  0, ((u32)t[0] >>  0) | ((u32)t[1] << 26));
     store32_le(s +  4, ((u32)t[1] >>  6) | ((u32)t[2] << 19));
@@ -758,25 +895,16 @@ static int fe_isnonzero(const fe f)
 /// X-25519 /// Taken from Supercop's ref10 implementation.
 ///////////////
 
-sv trim_scalar(u8 s[32])
+static void trim_scalar(u8 s[32])
 {
     s[ 0] &= 248;
     s[31] &= 127;
     s[31] |= 64;
 }
 
-int crypto_x25519(u8       shared_secret   [32],
-                  const u8 your_secret_key [32],
-                  const u8 their_public_key[32])
+static void x25519_ladder(const fe x1, fe x2, fe z2, fe x3, fe z3,
+                          const u8 scalar[32])
 {
-    // computes the scalar product
-    fe x1, x2, z2, x3, z3;
-    fe_frombytes(x1, their_public_key);
-
-    // restrict the possible scalar values
-    u8 e[32]; FOR (i, 0, 32) { e[i] = your_secret_key[i]; }
-    trim_scalar(e);
-
     // Montgomery ladder
     // In projective coordinates, to avoid divisons: x = X / Z
     // We don't care about the y coordinate, it's only 1 bit of information
@@ -785,7 +913,7 @@ int crypto_x25519(u8       shared_secret   [32],
     int swap = 0;
     for (int pos = 254; pos >= 0; --pos) {
         // constant time conditional swap before ladder step
-        int b = (e[pos / 8] >> (pos & 7)) & 1;
+        int b = (scalar[pos / 8] >> (pos & 7)) & 1;
         swap ^= b; // xor trick avoids swapping at the end of the loop
         fe_cswap(x2, x3, swap);
         fe_cswap(z2, z3, swap);
@@ -802,8 +930,29 @@ int crypto_x25519(u8       shared_secret   [32],
         fe_add(t0, t0, z3);  fe_mul(z3, x1, z2);    fe_mul(z2, t1, t0);
     }
     // last swap is necessary to compensate for the xor trick
+    // Note: after this swap, P3 == P2 + P1.
     fe_cswap(x2, x3, swap);
     fe_cswap(z2, z3, swap);
+}
+
+int crypto_x25519(u8       shared_secret   [32],
+                  const u8 your_secret_key [32],
+                  const u8 their_public_key[32])
+{
+    // computes the scalar product
+    fe x1;
+    fe_frombytes(x1, their_public_key);
+
+    // restrict the possible scalar values
+    u8 e[32];
+    FOR (i, 0, 32) {
+        e[i] = your_secret_key[i];
+    }
+    trim_scalar(e);
+
+    // computes the actual scalar product (the result is in x2 and z2)
+    fe x2, z2, x3, z3;
+    x25519_ladder(x1, x2, z2, x3, z3, e);
 
     // normalises the coordinates: x == X / Z
     fe_invert(z2, z2);
@@ -822,16 +971,17 @@ void crypto_x25519_public_key(u8       public_key[32],
     crypto_x25519(public_key, secret_key, base_point);
 }
 
+
 ///////////////
 /// Ed25519 ///
 ///////////////
 
 // Point in a twisted Edwards curve,
-// in extended projective coordinates
+// in extended projective coordinates.
 // x = X/Z, y = Y/Z, T = XY/Z
 typedef struct { fe X; fe Y; fe Z; fe T; } ge;
 
-sv ge_from_xy(ge *p, const fe x, const fe y)
+static void ge_from_xy(ge *p, const fe x, const fe y)
 {
     FOR (i, 0, 10) {
         p->X[i] = x[i];
@@ -841,15 +991,7 @@ sv ge_from_xy(ge *p, const fe x, const fe y)
     fe_mul(p->T, x, y);
 }
 
-sv ge_cswap(ge *p, ge *q, u32 b)
-{
-    fe_cswap(p->X, q->X, b);
-    fe_cswap(p->Y, q->Y, b);
-    fe_cswap(p->Z, q->Z, b);
-    fe_cswap(p->T, q->T, b);
-}
-
-sv ge_tobytes(u8 s[32], const ge *h)
+static void ge_tobytes(u8 s[32], const ge *h)
 {
     fe recip, x, y;
     fe_invert(recip, h->Z);
@@ -863,12 +1005,12 @@ sv ge_tobytes(u8 s[32], const ge *h)
 static int ge_frombytes_neg(ge *h, const u8 s[32])
 {
     static const fe d = {
-        -10913610,13857413,-15372611,6949391,114729,
-        -8787816,-6275908,-3247719,-18696448,-12055116
+        -10913610, 13857413, -15372611, 6949391, 114729,
+        -8787816, -6275908, -3247719, -18696448, -12055116
     } ;
     static const fe sqrtm1 = {
-        -32595792,-7943725,9377950,3500415,12389472,
-        -272473,-25146209,-2005654,326686,11406482
+        -32595792, -7943725, 9377950, 3500415, 12389472,
+        -272473, -25146209, -2005654, 326686, 11406482
     } ;
     fe u, v, v3, vxx, check;
     fe_frombytes(h->Y, s);
@@ -897,21 +1039,19 @@ static int ge_frombytes_neg(ge *h, const u8 s[32])
         fe_mul(h->X, h->X, sqrtm1);
     }
 
-    if (fe_isnegative(h->X) == (s[31] >> 7))
+    if (fe_isnegative(h->X) == (s[31] >> 7)) {
         fe_neg(h->X, h->X);
-
+    }
     fe_mul(h->T, h->X, h->Y);
     return 0;
 }
 
-// for point additon
-static const fe D2 = { // - 2 * 121665 / 121666
-    0x2b2f159, 0x1a6e509, 0x22add7a, 0x0d4141d, 0x0038052,
-    0x0f3d130, 0x3407977, 0x19ce331, 0x1c56dff, 0x0901b67
-};
-
-sv ge_add(ge *s, const ge *p, const ge *q)
+static void ge_add(ge *s, const ge *p, const ge *q)
 {
+    static const fe D2 = { // - 2 * 121665 / 121666
+        0x2b2f159, 0x1a6e509, 0x22add7a, 0x0d4141d, 0x0038052,
+        0x0f3d130, 0x3407977, 0x19ce331, 0x1c56dff, 0x0901b67
+    };
     fe a, b, c, d, e, f, g, h;
     //  A = (Y1-X1) * (Y2-X2)
     //  B = (Y1+X1) * (Y2+X2)
@@ -929,30 +1069,61 @@ sv ge_add(ge *s, const ge *p, const ge *q)
     fe_mul(s->T, e, h);  //  T3 = E * H
 }
 
-sv ge_double(ge *s, const ge *p) { ge_add(s, p, p); }
-
-sv ge_scalarmult(ge *p, const ge *q, const u8 scalar[32])
+// Performing the scalar multiplication directly in Twisted Edwards
+// space woud be simpler, but also slower.  So we do it in Montgomery
+// space instead.  The sign of the Y coordinate however gets lost in
+// translation, so we use a dirty trick to recover it.
+static void ge_scalarmult(ge *p, const ge *q, const u8 scalar[32])
 {
-    // Simple Montgomery ladder, with straight double and add.
-    ge t;
-    fe_0(p->X);  fe_copy(t.X, q->X);
-    fe_1(p->Y);  fe_copy(t.Y, q->Y);
-    fe_1(p->Z);  fe_copy(t.Z, q->Z);
-    fe_0(p->T);  fe_copy(t.T, q->T);
-    int swap = 0;
-    for (int i = 255; i >= 0; i--) {
-        int b = (scalar[i/8] >> (i & 7)) & 1;
-        swap ^= b;  // xor trick avoids unnecessary swaps
-        ge_cswap(p, &t, swap);
-        swap = b;
-        ge_add(&t, &t, p);
-        ge_double(p, p);
-    }
-    // one last swap makes up for the xor trick
-    ge_cswap(p, &t, swap);
+    // sqrt(-486664)
+    static const fe K = { 54885894, 25242303, 55597453,  9067496, 51808079,
+                          33312638, 25456129, 14121551, 54921728,  3972023 };
+
+    // convert q to montgomery format
+    fe x1, y1, z1, x2, z2, x3, z3, t1, t2, t3, t4;
+    fe_sub(z1, q->Z, q->Y);  fe_mul(z1, z1, q->X);  fe_invert(z1, z1);
+    fe_add(t1, q->Z, q->Y);
+    fe_mul(x1, q->X, t1  );  fe_mul(x1, x1, z1);
+    fe_mul(y1, q->Z, t1  );  fe_mul(y1, y1, z1);  fe_mul(y1, K, y1);
+    fe_1(z1); // implied in the ladder, needed to convert back.
+
+    // montgomery scalarmult
+    x25519_ladder(x1, x2, z2, x3, z3, scalar);
+
+    // Recover the y coordinate (Katsuyuki Okeya & Kouichi Sakurai, 2001)
+    // Note the shameless reuse of x1: (x1, y1, z1) will correspond to
+    // what was originally (x2, z2).
+    fe_mul(t1, x1, z2);  // t1 = x1 * z2
+    fe_add(t2, x2, t1);  // t2 = x2 + t1
+    fe_sub(t3, x2, t1);  // t3 = x2 − t1
+    fe_sq (t3, t3);      // t3 = t3^2
+    fe_mul(t3, t3, x3);  // t3 = t3 * x3
+    fe_mul973324(t1, z2);// t1 = 2a * z2
+    fe_add(t2, t2, t1);  // t2 = t2 + t1
+    fe_mul(t4, x1, x2);  // t4 = x1 * x2
+    fe_add(t4, t4, z2);  // t4 = t4 + z2
+    fe_mul(t2, t2, t4);  // t2 = t2 * t4
+    fe_mul(t1, t1, z2);  // t1 = t1 * z2
+    fe_sub(t2, t2, t1);  // t2 = t2 − t1
+    fe_mul(t2, t2, z3);  // t2 = t2 * z3
+    fe_add(t1, y1, y1);  // t1 = y1 + y1
+    fe_mul(t1, t1, z2);  // t1 = t1 * z2
+    fe_mul(t1, t1, z3);  // t1 = t1 * z3
+    fe_mul(x1, t1, x2);  // x1 = t1 * x2
+    fe_sub(y1, t2, t3);  // y1 = t2 − t3
+    fe_mul(z1, t1, z2);  // z1 = t1 * z2
+
+    // convert back to twisted edwards
+    fe_sub(t1  , x1, z1);
+    fe_add(t2  , x1, z1);
+    fe_mul(x1  , K , x1);
+    fe_mul(p->X, x1, t2);
+    fe_mul(p->Y, y1, t1);
+    fe_mul(p->Z, y1, t2);
+    fe_mul(p->T, x1, t1);
 }
 
-sv ge_scalarmult_base(ge *p, const u8 scalar[32])
+static void ge_scalarmult_base(ge *p, const u8 scalar[32])
 {
     // Calls the general ge_scalarmult() with the base point.
     // Other implementations use a precomputed table, but it
@@ -968,7 +1139,7 @@ sv ge_scalarmult_base(ge *p, const u8 scalar[32])
     ge_scalarmult(p, &base_point, scalar);
 }
 
-sv modL(u8 *r, i64 x[64])
+static void modL(u8 *r, i64 x[64])
 {
     static const  u64 L[32] = { 0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,
                                 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,
@@ -979,7 +1150,7 @@ sv modL(u8 *r, i64 x[64])
         FOR (j, i-32, i-12) {
             x[j] += carry - 16 * x[i] * L[j - (i - 32)];
             carry = (x[j] + 128) >> 8;
-            x[j] -= (u64)carry << 8;
+            x[j] -= carry * (1 << 8);
         }
         x[i-12] += carry;
         x[i] = 0;
@@ -990,23 +1161,28 @@ sv modL(u8 *r, i64 x[64])
         carry = x[i] >> 8;
         x[i] &= 255;
     }
-    FOR(i, 0, 32) { x[i] -= carry * L[i]; }
+    FOR(i, 0, 32) {
+        x[i] -= carry * L[i];
+    }
     FOR(i, 0, 32) {
         x[i+1] += x[i] >> 8;
         r[i  ]  = x[i] & 255;
     }
 }
 
-sv reduce(u8 r[64])
+static void reduce(u8 r[64])
 {
     i64 x[64];
-    FOR(i, 0, 64) x[i] = (u64) r[i];
-    FOR(i, 0, 64) r[i] = 0;
+    FOR(i, 0, 64) {
+        x[i] = (u64) r[i];
+        r[i] = 0;
+    }
     modL(r, x);
 }
 
 // hashes R || A || M, reduces it modulo L
-sv hash_ram(u8 k[64], const u8 R[32], const u8 A[32], const u8 *M, size_t M_size)
+static void hash_ram(u8 k[64], const u8 R[32], const u8 A[32],
+                     const u8 *M, size_t M_size)
 {
     HASH_CTX ctx;
     HASH_INIT  (&ctx);
@@ -1065,9 +1241,9 @@ void crypto_sign(u8        signature[64],
     hash_ram(h_ram, signature, pk, message, message_size);
 
     i64 s[64]; // s = r + h_ram * a
-    FOR(i,  0, 32) s[i] = (u64) r[i];
-    FOR(i, 32, 64) s[i] = 0;
-    FOR(i, 0, 32) {
+    FOR(i,  0, 32) { s[i] = (u64) r[i]; }
+    FOR(i, 32, 64) { s[i] = 0;          }
+    FOR(i,  0, 32) {
         FOR(j, 0, 32) {
             s[i+j] += h_ram[i] * (u64) a[j];
         }
@@ -1081,11 +1257,13 @@ int crypto_check(const u8  signature[64],
 {
     ge A, p, sB, diff;
     u8 h_ram[64], R_check[32];
-    if (ge_frombytes_neg(&A, public_key)) return -1;  // -A
+    if (ge_frombytes_neg(&A, public_key)) {       // -A
+        return -1;
+    }
     hash_ram(h_ram, signature, public_key, message, message_size);
-    ge_scalarmult(&p, &A, h_ram);                     // p    = -A*h_ram
+    ge_scalarmult(&p, &A, h_ram);                 // p    = -A*h_ram
     ge_scalarmult_base(&sB, signature + 32);
-    ge_add(&diff, &p, &sB);                           // diff = s - A*h_ram
+    ge_add(&diff, &p, &sB);                       // diff = s - A*h_ram
     ge_tobytes(R_check, &diff);
     return crypto_memcmp(signature, R_check, 32); // R == s - A*h_ram ? OK : fail
 }

@@ -18,7 +18,7 @@ supported_platforms = {
 	"unix", "windows" 
 }
 dependencies = {
-   "lua >= 5.1"
+   "lua >= 5.2"
 }
 build = {
    type = "builtin",

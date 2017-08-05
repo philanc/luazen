@@ -1,8 +1,11 @@
 
 # ----------------------------------------------------------------------
 # adjust the following to the location of your Lua include files
+# and executable
 
-LUAINC= -I../lua/include
+LUADIR= ../lua
+LUAINC= -I$(LUADIR)/include
+LUAEXE= $(LUADIR)/bin/lua
 
 # ----------------------------------------------------------------------
 
@@ -19,7 +22,7 @@ luazen.so:  src/*.c src/*.h
 	$(CC) -shared $(LDFLAGS) -o luazen.so $(LUAZEN_O)
 
 test:  luazen.so
-	lua test/test_luazen.lua
+	$(LUAEXE) test/test_luazen.lua
 	
 clean:
 	rm -f *.o *.so *.dll

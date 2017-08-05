@@ -318,7 +318,7 @@ static int lz_blake2b_final(lua_State *L) {
 	//
 	crypto_blake2b_ctx *ctx = (crypto_blake2b_ctx *) lua_touserdata(L, 1);
 	if (ctx == NULL) LERR("invalid ctx");	
-	int digln = ctx->output_size;
+	int digln = ctx->hash_size;
 	unsigned char dig[64];
     crypto_blake2b_final(ctx, dig);
 	free(ctx);
