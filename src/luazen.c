@@ -545,8 +545,11 @@ static int lz_rc4raw(lua_State *L) {
 }
 
 
+#define DROPLN 256
+
 //--- rc4() - a rc4-drop encrypt/decrypt function
 //-- see http://www.users.zetnet.co.uk/hopwood/crypto/scan/cs.html#RC4-drop
+//-- encrypt and drop DROPLN bytes before starting to encrypt the plain text
 //
 static int lz_rc4(lua_State *L) {
     size_t sln, kln; 
@@ -557,16 +560,14 @@ static int lz_rc4(lua_State *L) {
 		lua_pushliteral (L, "luazen: rc4 key must be 16 bytes");
 		return 2;         
 	}
-	const int dropln = 256;
-    char drop[dropln]; 
+	char drop[DROPLN]; 
 	// ensure drop is zeroed
-	int i;  for (i=0;  i<dropln; i++) drop[i] = 0;
+	int i;  for (i=0;  i<DROPLN; i++) drop[i] = 0;
     char *dst = (char *) malloc(sln); 
     rc4_ctx ctx;
     rc4_setup(&ctx, key, kln); 
-    // drop initial bytes of keystream
-    // copy following line n times to get a rc4-drop <n*256>
-    rc4_crypt(&ctx, drop, drop, 256);
+    // drop initial DROPLN bytes of keystream
+    rc4_crypt(&ctx, drop, drop, DROPLN);
     // crypt actual input
     rc4_crypt(&ctx, src, dst, sln);
     lua_pushlstring (L, dst, sln); 
