@@ -1,5 +1,9 @@
+
 // interface to the OS Random Number Generator  
-// (/dev/urandom or Windows)
+
+// the getrandom() detection code has been provided by Daurnimator 
+// (https://github.com/daurnimator)
+
 
 #ifdef _WIN32
 
@@ -34,43 +38,43 @@ if (xlen > 4096) {
   return 0;
 }	
 
-#else
+#else // unix
 // ---------------------------------------------------------------------
-// use /dev/urandom
-
-// (from nacl-20110221/randombytes/devurandom.c)
+// use getrandom() or /dev/urandom
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-/* it's really stupid that there isn't a syscall for this */
+#if defined __GLIBC_PREREQ && !defined __UCLIBC__
+#define GLIBC_PREREQ(M, m) (__GLIBC_PREREQ(M, m))
+#else
+#define GLIBC_PREREQ(M, m) 0
+#endif
 
-static int fd = -1;
+#ifndef HAVE_GETRANDOM
+#define HAVE_GETRANDOM (GLIBC_PREREQ(2,25) && __linux__)
+#endif
 
-int randombytes(unsigned char *x,unsigned long long xlen)
-{
-  int i;
+int randombytes(unsigned char *x, unsigned long long xlen) {
+	int fd, i;
+	size_t count = (size_t) xlen;
 
-  if (fd == -1) {
+#if HAVE_GETRANDOM
+	i = getrandom(x, count, 0);
+#else
 	fd = open("/dev/urandom",O_RDONLY);
-	if (fd == -1) { return -1; }
-}
-
-  while (xlen > 0) {
-    if (xlen < 4096) i = xlen; else i = 4096;
-
-    i = read(fd,x,i);
-    if (i < 1) {
-      sleep(1);
-      continue;
-    }
-
-    x += i;
-    xlen -= i;
-  }
-  return 0;
+	if (fd == -1) { 
+		return -1; 
+	}
+	i = read(fd, x, count);
+	close(fd);
+#endif
+	if ((i < 0) || (i < count)) { 
+		return -1; 
+	}
+	return 0;
 }
 
 #endif
