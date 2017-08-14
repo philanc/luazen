@@ -713,47 +713,54 @@ static int lz_b64decode(lua_State *L)		/** decode(s) */
 //   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 static int lz_b58encode(lua_State *L) {
+	// lua api:  b58encode(str) => encoded | (nil, error msg)
+	// prereq:  #str <= 256  (defined as B58MAXLN)
 	size_t bln, eln;
+	unsigned char buf[B58MAXENCLN]; 	// buffer to receive encoded string
 	const char *b = luaL_checklstring(L,1,&bln);	
 	if (bln == 0) { // empty string special case (not ok with b58enc)
 		lua_pushliteral (L, ""); 
 		return 1;
+	} else if (bln > B58MAXLN) {
+		lua_pushnil (L);
+		lua_pushfstring(L, "string too long");
+		return 2;
 	}
-	unsigned char * buf = malloc(bln * 2); // more than enough!
-	eln = bln * 2; // eln must be set to buffer size before calling b58enc
+	eln = B58MAXENCLN; // eln must be set to buffer size before calling b58enc
 	bool r = b58enc(buf, &eln, b, bln);
 	if (!r) { 
-		free(buf); 
 		lua_pushnil (L);
 		lua_pushfstring(L, "b58encode error");
 		return 2;         
 	} 
 	eln = eln - 1;  // b58enc add \0 at the end of the encode string
 	lua_pushlstring (L, buf, eln); 
-	free(buf);
 	return 1;
 }
 
+
 static int lz_b58decode(lua_State *L) {
-	size_t bufsz, bln, eln;
+	// lua api: b58decode(encstr) => str | (nil, error msg)
+	size_t bln, eln;
+	unsigned char buf[B58MAXENCLN]; 	// buffer to receive decoded string
 	const char *e = luaL_checklstring(L,1,&eln); // encoded data
 	if (eln == 0) { // empty string special case 
 		lua_pushliteral (L, ""); 
 		return 1;
+	} else if (eln > B58MAXENCLN) {
+		lua_pushnil (L);
+		lua_pushfstring(L, "string too long");
+		return 2;
 	}
-	bufsz = eln; // more than enough!
-	unsigned char *buf = malloc(bufsz); 
-	bln = bufsz; // give the result buffer size to b58tobin
+	bln = B58MAXENCLN; // give the result buffer size to b58tobin
 	bool r = b58tobin(buf, &bln, e, eln);
 	if (!r) { 
-		free(buf); 
 		lua_pushnil (L);
 		lua_pushfstring(L, "b58decode error");
 		return 2;         
 	} 
 	// b58tobin returns its result at the _end_ of buf!!!
-	lua_pushlstring (L, buf+bufsz-bln, bln); 
-	free(buf);
+	lua_pushlstring (L, buf+B58MAXENCLN-bln, bln); 
 	return 1;
 }
 

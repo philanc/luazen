@@ -52,14 +52,17 @@ b58encode(str)
 	this uses the same alphabet as bitcoin addresses:
 	"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 	contrary to base64, base58 encodes a string as a long number 
-	written in base58. It is not intended to be used for "long" strings
-	(more than a couple thousand bytes). No newline is inserted in the
-	encoded string.
+	written in base58. 
+	Base58 is not intended to be used for long strings, 
+	if #str > 256, str is not encoded and the function return an error.
+	No newline is inserted in the encoded string.
 	return the encoded string or (nil, error message)
 
 b58decode(bstr)
 	decode base58-encoded string bstr
-	return the decoded string or (nil, error message)
+	return the decoded string or (nil, error message) in case of an 
+	invalid base58 string or if the decoded string is longer than
+	256 bytes.
 
 xor(str, key)
 	return the byte-to-byte xor of string str with string key.

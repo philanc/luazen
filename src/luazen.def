@@ -1,0 +1,4 @@
+LIBRARY luazen.dll
+VERSION 0.8
+EXPORTS
+luaopen_luazen

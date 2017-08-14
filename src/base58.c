@@ -21,6 +21,10 @@
 
 #include "base58.h"
 
+/// !!VC
+#define ssize_t int32_t
+
+
 static const int8_t b58digits_map[] = {
 	-1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
 	-1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
@@ -37,8 +41,8 @@ bool b58tobin(char *bin, size_t *binszp, const char *b58, size_t b58sz)
 	size_t binsz = *binszp;
 	const unsigned char *b58u = (void*)b58;
 	unsigned char *binu = bin;
-	size_t outisz = (binsz + 3) / 4;
-	uint32_t outi[outisz];
+	size_t outisz = B58MAXENCLN / 4;
+	uint32_t outi[B58MAXENCLN / 4];
 	uint64_t t;
 	uint32_t c;
 	size_t i, j;
@@ -125,7 +129,7 @@ bool b58enc(char *b58, size_t *b58sz, const char *data, size_t binsz)
 		++zcount;
 	
 	size = (binsz - zcount) * 138 / 100 + 1;
-	uint8_t buf[size];
+	uint8_t buf[B58MAXENCLN];
 	memset(buf, 0, size);
 	
 	for (i = zcount, high = size - 1; i < binsz; ++i, high = j)
