@@ -80,6 +80,17 @@ do
 end
 
 ------------------------------------------------------------------------
+print("testing blz compression...")
+do
+	assert(lz.blz("") == "\0\0\0\0")
+	assert(lz.unblz("\0\0\0\0") == "")
+	local x
+	x = "Hello world"; assert(lz.unblz(lz.blz(x)) == x)
+	x = ("a"):rep(301); assert(lz.unblz(lz.blz(x)) == x)
+	assert(#lz.blz(("a"):rep(301)) < 30)
+end
+
+------------------------------------------------------------------------
 print("testing luazen legacy...")
 
 -- xor

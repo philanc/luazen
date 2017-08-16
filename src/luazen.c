@@ -3,16 +3,12 @@
 
 /*
 
-170522  
-- slua lz renamed to luazen for win slua533-2
-- added a windows RNG function in file randombytes_win.c
-  (randombytes.c from win slua533-1 tweetnacl)
-
-
 TODO:  
 - remove keypair functions? leave it to lua apps
 - drop key_echange => repl with x25519 or "get_shared_secret"
   or key it but expose x25519 to allow public test vectors
+
+170815  added the amazing BriefLZ compression
 
 ---
 
@@ -25,18 +21,20 @@ It includes the following algorithms
 - Blake2b cryptographic hash 
 - Argon2i key derivation 
 - curve25519 key exchange and ed25519 signature
-e- LZF compression
+- BriefLZ  compression
+- LZF compression
 - base64, base58, xor
 - legacy cryptography (md5, rc4)
 
 */
 
-#define VERSION "luazen-0.8"
+#define VERSION "luazen-0.9"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -47,7 +45,10 @@ e- LZF compression
 // for blake2b, curve25519
 #include "mono.h"
 
-//for luazen stuff
+// for BriefLZ compression
+#include "brieflz.h"
+
+//for other luazen stuff
 #include "lzf.h"
 #include "rc4.h"
 #include "md5.h"
@@ -431,7 +432,64 @@ static int lz_argon2i(lua_State *L) {
 #endif
 
 //----------------------------------------------------------------------
-// luazen functions
+// other luazen functions
+
+
+// brieflz compression functions
+
+static uint32_t load32_le(const uint8_t s[4]) {
+    return (uint32_t)s[0]
+        | ((uint32_t)s[1] <<  8)
+        | ((uint32_t)s[2] << 16)
+        | ((uint32_t)s[3] << 24);
+}
+
+static void store32_le(uint8_t out[4], uint32_t in) {
+    out[0] =  in        & 0xff;
+    out[1] = (in >>  8) & 0xff;
+    out[2] = (in >> 16) & 0xff;
+    out[3] = (in >> 24) & 0xff;
+}
+
+static int lz_blz(lua_State *L) {
+	// Lua API:  blz(s) => c
+	// compress string s, return compressed string c
+	// or nil, error msg in case of error
+	//
+	size_t sln, cln, bufln, workln;
+	const char *s = luaL_checklstring(L, 1, &sln);	
+	assert(sln < 0xffffffff); // fit a uint32
+	bufln = blz_max_packed_size(sln) + 4;  // +4 to store s length
+	workln = blz_workmem_size(sln);
+	char * buf = lua_newuserdata(L, bufln);
+	char * work = lua_newuserdata(L, workln);
+	cln = blz_pack(s, buf+4, sln, work);
+	// prefix compressed string with original s length (stored as LE)
+	store32_le(buf, sln);
+	lua_pushlstring (L, buf, cln + 4); 	
+	return 1;
+} //blz()
+
+static int lz_unblz(lua_State *L) {
+	// Lua API:  unblz(c) => s | nil, error msg
+	// decompress string c, return original string s
+	// or nil, error msg in case of decompression error
+	//
+	size_t sln, cln, bufln, dln;
+	const char *c = luaL_checklstring(L, 1, &cln);	
+	sln = load32_le(c);  
+	bufln = sln + 8;  // have some more space.  ...for what?
+	char * buf = lua_newuserdata(L, bufln);
+	dln = blz_depack_safe(c + 4, cln - 4, buf, sln);
+	if (dln != sln) {
+		lua_pushnil (L);
+		lua_pushliteral(L, "uncompress error");
+		return 2;         
+	}
+	lua_pushlstring (L, buf, sln); 
+	return 1;
+} //unblz()
+
 
 // lzf compression functions
 
@@ -798,6 +856,10 @@ static const struct luaL_Reg lzlib[] = {
 #endif
 	//
 	{"xor", lz_xor},
+	// brieflz compression 
+	{"blz", lz_blz},
+	{"unblz", lz_unblz},
+	// lzf compression
 	{"lzf", lz_lzf},
 	{"unlzf", lz_unlzf},
 #ifndef NOLEGACY

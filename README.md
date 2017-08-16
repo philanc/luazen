@@ -4,7 +4,17 @@
 Luazen is a small library with various encoding, compression and 
 cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces (except for blake2b hash function)
 
-The compression functions are based on the tiny **lzf** library (see references in the readme). It is not as efficient as gzip, but much smaller.
+### Recent changes
+
+August-2017
+
+* Added the amazing *BriefLZ* compression functions.  
+
+### Functions
+
+The compression functions are based on the tiny **LZF** library (see references in the readme). It is not as efficient as gzip, but much smaller and very fast.
+
+Compression functions based on the amazing **BriefLZ** algorithm by Joergen Ibsen are also included. They are half as fast as LZF, but even smaller and with a much better compression ratio (better than gzip).  They could completely replace LZF in future versions of luazen.
 
 Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used)
 
@@ -24,8 +34,16 @@ Luazen borrows heavily from other projects. See the License and credits section 
 ```
 --- Compression functions
 
+blz(str)
+	compress string str (BriefLZ algorithm)
+	return the compressed string or (nil, error message)
+
+unblz(cstr)
+	uncompress string cstr
+	return the uncompressed string or (nil, error message)
+
 lzf(str)
-	compress string str
+	compress string str (LZF algorithm)
 	return the compressed string or (nil, error message)
 
 unlzf(cstr)
@@ -243,6 +261,7 @@ randombytes(n)
 Luazen is distributed under the terms of the MIT License. 
 
 The luazen library includes some code from various authors (see src/):
+- brieflz compression by Joergen Ibsen, BSD-like - see https://github.com/jibsen/brieflz
 - lzf functions by  Marc Alexander Lehmann (BSD, see src/lzf* headers)
 - blake2b, argon2i, ed/x25519 functions by Loup Vaillant (blake2b comes from the RFC 7693 reference code; ed/x25519 taken from Supercop's ref10 implementation). Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
 - norx from the reference implementation by Samuel Neves and Philipp Jovanovic (public domain or CC0) - see https://norx.io/
