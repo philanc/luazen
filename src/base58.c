@@ -144,8 +144,9 @@ bool b58enc(char *b58, size_t *b58sz, const char *data, size_t binsz)
 	
 	for (j = 0; j < size && !buf[j]; ++j);
 	
-	if (*b58sz <= zcount + size - j)
-	{
+	if (*b58sz <= zcount + size - j)  	{
+		// with the added size limit on encoded string,
+		// this should never happen -- XXXXX remove the test?
 		*b58sz = zcount + size - j + 1;
 		return false;
 	}

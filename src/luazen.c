@@ -590,12 +590,7 @@ static int lz_rc4raw(lua_State *L) {
 	size_t sln, kln; 
 	const char *src = luaL_checklstring (L, 1, &sln);
 	const char *key = luaL_checklstring (L, 2, &kln);
-	if (kln != 16) {
-		lua_pushnil (L);
-		lua_pushliteral (L, "luazen: rc4 key must be 16 bytes");
-		return 2;         
-	}
-	//printf("[%s]%d  [%s]%d \n", s, sln, k, kln);
+	if (kln != 16)  LERR("bad key size");
 	char *dst = (char *) malloc(sln); 
 	rc4_ctx ctx;
 	rc4_setup(&ctx, key, kln); 
@@ -616,11 +611,7 @@ static int lz_rc4(lua_State *L) {
     size_t sln, kln; 
     const char *src = luaL_checklstring (L, 1, &sln);
     const char *key = luaL_checklstring (L, 2, &kln);
-	if (kln != 16) {
-		lua_pushnil (L);
-		lua_pushliteral (L, "luazen: rc4 key must be 16 bytes");
-		return 2;         
-	}
+	if (kln != 16)  LERR("bad key size");
 	char drop[DROPLN]; 
 	// ensure drop is zeroed
 	int i;  for (i=0;  i<DROPLN; i++) drop[i] = 0;
@@ -779,18 +770,12 @@ static int lz_b58encode(lua_State *L) {
 	if (bln == 0) { // empty string special case (not ok with b58enc)
 		lua_pushliteral (L, ""); 
 		return 1;
-	} else if (bln > B58MAXLN) {
-		lua_pushnil (L);
-		lua_pushfstring(L, "string too long");
-		return 2;
+	} else if (bln > B58MAXLN) {  
+		LERR("string too long");
 	}
 	eln = B58MAXENCLN; // eln must be set to buffer size before calling b58enc
 	bool r = b58enc(buf, &eln, b, bln);
-	if (!r) { 
-		lua_pushnil (L);
-		lua_pushfstring(L, "b58encode error");
-		return 2;         
-	} 
+	if (!r) LERR("b58encode error");
 	eln = eln - 1;  // b58enc add \0 at the end of the encode string
 	lua_pushlstring (L, buf, eln); 
 	return 1;

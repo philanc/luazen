@@ -72,9 +72,9 @@ b58encode(str)
 	contrary to base64, base58 encodes a string as a long number 
 	written in base58. 
 	Base58 is not intended to be used for long strings, 
-	if #str > 256, str is not encoded and the function return an error.
+	if #str > 256, str is not encoded and the function raises an error.
 	No newline is inserted in the encoded string.
-	return the encoded string or (nil, error message)
+	return the encoded string.
 
 b58decode(bstr)
 	decode base58-encoded string bstr
@@ -229,7 +229,7 @@ argon2i(pw, salt, nkb, niter) => k
 
 rc4raw(str, key) => encrypted (or decrypted) string
 	encrypt (or decrypt, as rc4 is symmetric) string str with string key
-	key length must be 16 (or nil, error msg is returned)
+	key length must be 16 (or an error is raised)
 	return the encrypted string
 	see http://en.wikipedia.org/wiki/RC4 for raw rc4 weaknesses
 	rc4(), a rc4-drop implementation, should be used instead for most uses
@@ -239,7 +239,7 @@ rc4(str, key) => encrypted (or decrypted) string
 	(ie. the rc4 state is initialized by "encrypting" a 256-byte block of
 	zero bytes before starting the encyption of the string)
 	arguments and return are the same as rc4raw()
-	key length must be 16 (or nil, error msg is returned)
+	key length must be 16 (or an error is raised)
 
 md5(str) => digest
 	return the md5 hash of string str as a 16-byte binary string
