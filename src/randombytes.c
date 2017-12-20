@@ -56,6 +56,9 @@ if (xlen > 4096) {
 #ifndef HAVE_GETRANDOM
 #define HAVE_GETRANDOM (GLIBC_PREREQ(2,25) && __linux__)
 #endif
+#if HAVE_GETRANDOM
+#include <sys/random.h>
+#endif
 
 int randombytes(unsigned char *x, unsigned long long xlen) {
 	int fd, i;
