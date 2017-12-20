@@ -1,5 +1,5 @@
 package = "luazen"
-version = "0.8-1"
+version = "0.8-2"
 source = {
    url = "git://github.com/philanc/luazen" 
 }
@@ -29,6 +29,7 @@ build = {
 			"src/lzf_c.c", "src/lzf_d.c",
 			"src/mono.c", "src/norx.c",
 			"src/md5.c", "src/rc4.c",
+			"src/brieflz.c", "src/depacks.c",
 			"src/randombytes.c",
 		},
 		incdir = "src"
