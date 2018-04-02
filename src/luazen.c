@@ -71,13 +71,14 @@ int ll_blake2b_update(lua_State *L);
 int ll_blake2b_final(lua_State *L);
 int ll_argon2i(lua_State *L);
 
-int ll_sha512(lua_State *L);
+//~ int ll_sha512(lua_State *L);
 
-int ll_ec25519_public_key(lua_State *L);
-int ll_ec25519_shared_secret(lua_State *L);
-int ll_ed25519_public_key(lua_State *L);
-int ll_ed25519_sign(lua_State *L);
-int ll_ed25519_check(lua_State *L);
+int ll_x25519_public_key(lua_State *L);
+int ll_x25519_shared_secret(lua_State *L);
+int ll_x25519_sign_public_key(lua_State *L);
+int ll_x25519_sign(lua_State *L);
+int ll_x25519_sign_open(lua_State *L);
+int ll_x25519_sha512(lua_State *L);
 
 //----------------------------------------------------------------------
 // lua library declaration
@@ -111,14 +112,15 @@ static const struct luaL_Reg llib[] = {
 	{"argon2i", ll_argon2i},	
 	
 	//
-	{"sha512", ll_sha512},
+	//~ {"sha512", ll_sha512},
 	//~ {"sha256", ll_sha256},
 	//
-	{"ec25519_public_key", ll_ec25519_public_key},
-	{"ec25519_shared_secret", ll_ec25519_shared_secret},
-	{"ed25519_public_key", ll_ed25519_public_key},	
-	{"ed25519_sign", ll_ed25519_sign},	
-	{"ed25519_check", ll_ed25519_check},		
+	{"x25519_public_key", ll_x25519_public_key},
+	{"x25519_shared_secret", ll_x25519_shared_secret},
+	{"x25519_sign_public_key", ll_x25519_sign_public_key},	
+	{"x25519_sign", ll_x25519_sign},	
+	{"x25519_sign_open", ll_x25519_sign_open},		
+	{"x25519_sha512", ll_x25519_sha512},	
 	// 
 	{"rc4", ll_rc4},
 	{"rc4raw", ll_rc4raw},

@@ -342,41 +342,48 @@ end
 
 
 ------------------------------------------------------------------------
-if lz.ec25519_public_key then do
+if lz.x25519_public_key then do
 	print("testing curve25519...")
 	local function keypair() 
 		local sk = lz.randombytes(32)
-		return lz.ec25519_public_key(sk), sk
+		return lz.x25519_public_key(sk), sk
 	end
 	local ask, apk, bsk, bpk, k1, k2
 	apk, ask = keypair() -- alice keypair
 	bpk, bsk = keypair() -- bob keypair
 
-	k1 = lz.ec25519_shared_secret(ask, bpk)
-	k2 = lz.ec25519_shared_secret(bsk, apk)
+	k1 = lz.x25519_shared_secret(ask, bpk)
+	k2 = lz.x25519_shared_secret(bsk, apk)
 	assert(k1 == k2)
 	end--do
 end
 
 
 ------------------------------------------------------------------------
-if lz.ed25519_public_key then do
+if lz.x25519_sign then do
 	print("testing ed25519...")
-	local t, pk, sk, sig
+	local t, t2, pk, sk, st
 	local function keypair() 
 		local sk = lz.randombytes(32)
-		return lz.ed25519_public_key(sk), sk
+		return lz.x25519_sign_public_key(sk), sk
 	end
 	t = "The quick brown fox jumps over the lazy dog"
 	pk, sk = keypair() -- signature keypair
 	--
-	sig = lz.ed25519_sign(sk, pk, t)
-	assert(#sig == 64)
+	st = lz.x25519_sign(sk, pk, t)
+	assert(#st == 64 + #t)
 	--~ px(sig, 'sig')
 	-- check signature
-	assert(lz.ed25519_check(sig, pk, t))
+	assert(lz.x25519_sign_open(st, pk) == t)
 	-- modified text doesn't check
-	assert(not lz.ed25519_check(sig, pk, t .. "!"))
+	assert(not lz.x25519_sign_open(st .. "!", pk))
+	
+	local h = xts[[
+		07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb64
+		2e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6
+		]]
+	assert(lz.x25519_sha512(t) == h)
+	
 	end--do
 end
 

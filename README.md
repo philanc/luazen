@@ -16,6 +16,8 @@ March-2018: v0.10 - some significant changes:
 
 * Added  (X)Chacha20-Poly1305 authenticated encryption with additional data (AEAD)
 
+* all the curve25519 functions are based on the tweetnacl implementation
+
 * The ed25519 signature functions use sha512 instead of blake2b hash
 
 
@@ -159,7 +161,7 @@ xchacha_decrypt(k, n, c [, ninc [, aadln ]])
 
 --- Curve25519-based key exchange
 
-ec25519_public_key(sk) => pk
+x25519_public_key(sk) => pk
 	return the public key associated to a curve25519 secret key
 	sk is the secret key as a 32-byte string
 	pk is the associated public key as a 32-byte string
@@ -171,7 +173,7 @@ the included randombyte() function. It can be replaced with:
 			return luazen.ec25519_public_key(sk), sk
 		end
 
-ec25519_shared_secret(sk, pk) => ss
+x25519_shared_secret(sk, pk) => ss
 	DH key exchange. Return a common shared secret ss.
 	the shared secret is a 32-byte string. It could be used as-is
 	or passed to a derivation function to generate a temporary
@@ -181,6 +183,40 @@ ec25519_shared_secret(sk, pk) => ss
 	pk is the public key of the other party 
 	("their public key").
 	sk, pk and ss are 32-byte strings
+
+
+--- Ed25519 signature
+
+x25519_sign_public_key(sk) => pk
+	return the public key associated to a secret key
+	sk is the secret key as a 32-byte string
+	pk is the associated public key as a 32-byte string
+
+sign_keypair() has been removed to eliminate hard dependency to 
+the included randombyte() function. It can be replaced with:
+		function keypair()
+			local sk = luazen.randombytes(32)
+			return luazen.ed25519_public_key(sk), sk
+		end
+
+x25519_sign(sk, pk, text) => signed text
+	sign a text with a secret key
+	sk is the secret key as a 32-byte string
+	pk is the public key as a 32-byte string
+	text is the text to sign as a string
+	Return the signed text which contains  a 64-byte signature
+	followed by the original text.
+
+x25519_sign_open(stext, pk) => text
+	check a text signature with a public key
+	stext is the signed text to verify
+	pk is the public key as a 32-byte string
+	if the signature is valid, return the original text, or (nil, errmsg)
+	
+	Note: curve25519 key pairs cannot be used for ed25519 signature. 
+	
+x25519_sha512(s) => hash
+	return the sha512 hash of a string (as a 64-byte binary string)
 
 
 --- Blake2b cryptographic hash
@@ -210,36 +246,6 @@ blake2b(text) => digest
 	Returns a 64-byte digest.
 	This is a convenience function which combines the init(), 
 	update() and final() functions above.
-
-
---- Ed25519 signature
-
-sign_public_key(sk) => pk
-	return the public key associated to a secret key
-	sk is the secret key as a 32-byte string
-	pk is the associated public key as a 32-byte string
-
-sign_keypair() has been removed to eliminate hard dependency to 
-the included randombyte() function. It can be replaced with:
-		function keypair()
-			local sk = luazen.randombytes(32)
-			return luazen.ed25519_public_key(sk), sk
-		end
-
-ed25519_sign(sk, text) => sig
-	sign a text with a secret key
-	sk is the secret key as a 32-byte string
-	text is the text to sign as a string
-	Return the text signature as a 64-byte string.
-
-ed25519_check(sig, pk, text) => is_valid
-	check a text signature with a public key
-	sig is the signature to verify, as a 64-byte string
-	pk is the public key as a 32-byte string
-	text is the signed text
-	Return a boolean indicating if the signature is valid or not.
-	
-	Note: curve25519 key pairs cannot be used for ed25519 signature. 
 
 --- Argon2i password derivation 
 

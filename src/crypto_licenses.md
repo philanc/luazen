@@ -2,6 +2,17 @@
 
 ```
 ------------------------------------------------------------------------
+--- x25519.c
+
+ code from Dan Bernstein's tweetnacl implementation of 
+ the wonderful NaCl crypto library by Dan Bernstein,
+ Tanja Lange et al. http://nacl.cr.yp.to/  
+ 
+ See http://tweetnacl.cr.yp.to/index.html
+ 
+ This code is public domain.
+
+------------------------------------------------------------------------
 --- md5.c
 
 code extracted from the axTLS project by Cameron Rich 
@@ -63,7 +74,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE
 
 ------------------------------------------------------------------------
---- mono.c
+--- xchacha20-poly1305, blake2b, argoni
 
 The original Monocypher source code is licensed under the following terms (from the monocypher README file):
 

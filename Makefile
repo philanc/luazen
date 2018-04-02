@@ -20,6 +20,9 @@ OBJS= \
 	norx.o md5.o rc4.o xor.o lzf.o  blake2b.o  \
 	sha2.o x25519.o chacha.o
 
+#~ tw: src/tw.c
+	#~ $(CC) -c $(CFLAGS) src/tw.c
+
 all: luazen.so
 
 luazen.so: luazen.a
