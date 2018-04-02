@@ -1,3 +1,10 @@
+// Copyright (c) 2018 Phil Leblanc  -- see LICENSE file
+// ---------------------------------------------------------------------
+// md5
+
+// ---------------------------------------------------------------------
+// -- The md5 code included here is copyrighted and licensed under 
+// -- the following terms:
 /*
  * Copyright (c) 2007, Cameron Rich
  * 
@@ -27,13 +34,27 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+#include <stdint.h>
+    
+#define MD5_SIZE    16
+
+typedef struct 
+{
+  uint32_t state[4];        /* state (ABCD) */
+  uint32_t count[2];        /* number of bits, modulo 2^64 (lsb first) */
+  uint8_t buffer[64];       /* input buffer */
+} MD5_CTX;
+
+void MD5_Init(MD5_CTX *);
+void MD5_Update(MD5_CTX *, const uint8_t *msg, int len);
+void MD5_Final(uint8_t *digest, MD5_CTX *);
 
 /**
  * This file implements the MD5 algorithm as defined in RFC1321
  */
 
 #include <string.h>
-#include "md5.h"
 
 /* Constants for MD5Transform routine.
  */
@@ -290,4 +311,30 @@ static void Decode(uint32_t *output, const uint8_t *input, uint32_t len)
     for (i = 0, j = 0; j < len; i++, j += 4)
         output[i] = ((uint32_t)input[j]) | (((uint32_t)input[j+1]) << 8) |
             (((uint32_t)input[j+2]) << 16) | (((uint32_t)input[j+3]) << 24);
+}
+
+
+// ---------------------------------------------------------------------
+// lua binding
+
+#include <stdlib.h>
+#include <assert.h>
+
+#include "lua.h"
+#include "lauxlib.h"
+
+# define LERR(msg) return luaL_error(L, msg)
+
+//----------------------------------------------------------------------
+
+int ll_md5(lua_State *L) {
+    size_t sln; 
+    const char *src = luaL_checklstring (L, 1, &sln);
+    char digest[MD5_SIZE];
+    MD5_CTX ctx; 
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, src, sln);
+    MD5_Final(digest, &ctx);
+    lua_pushlstring (L, digest, MD5_SIZE); 
+    return 1;
 }

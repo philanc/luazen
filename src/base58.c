@@ -1,5 +1,10 @@
+// Copyright (c) 2018 Phil Leblanc  -- see LICENSE file
+// ---------------------------------------------------------------------
+// base58 encoding
 
-// 160412 - this file is derived from 
+
+// ---------------------------------------------------------------------
+// -- The base58 code is derived from 
 // https://raw.githubusercontent.com/luke-jr/libbase58/master/base58.c
 // commit 13dfa66514fca15d1fe536f3ba9dda2c817cb03d 
 // bitcoin specific stuff has been removed
@@ -10,20 +15,22 @@
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the standard MIT license.  See COPYING for more details.
  */
-
-//----------------------------------------------------------------------
-
-#include <stdbool.h>
+ #include <stdbool.h>
 #include <stddef.h>
+
+// max length of a string to encode with base58
+#define B58MAXLN 256
+
+// longest 256-byte encoded string is 350 bytes long.
+// add a bit (b58enc add \0 at the end of the encoded string)
+#define B58MAXENCLN 360
+
 #include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
 
-#include "base58.h"
-
 /// !!VC
 #define ssize_t int32_t
-
 
 static const int8_t b58digits_map[] = {
 	-1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
@@ -159,4 +166,73 @@ bool b58enc(char *b58, size_t *b58sz, const char *data, size_t binsz)
 	*b58sz = i + 1;
 	
 	return true;
+}
+
+
+// ---------------------------------------------------------------------
+// lua binding
+
+#define VERSION "util-0.9"
+
+#include <stdlib.h>
+#include <assert.h>
+
+#include "lua.h"
+#include "lauxlib.h"
+
+# define LERR(msg) return luaL_error(L, msg)
+
+// (exported functions are prefixed with 'll_')
+
+//------------------------------------------------------------
+// base58 encode, decode 
+// based on code from Luke Dashjr (MIT license - see source code)
+
+// this encoding uses the same alphabet as bitcoin addresses:
+//   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+int ll_b58encode(lua_State *L) {
+	// lua api:  b58encode(str) => encoded | (nil, error msg)
+	// prereq:  #str <= 256  (defined as B58MAXLN)
+	size_t bln, eln;
+	unsigned char buf[B58MAXENCLN]; 	// buffer to receive encoded string
+	const char *b = luaL_checklstring(L,1,&bln);	
+	if (bln == 0) { // empty string special case (not ok with b58enc)
+		lua_pushliteral (L, ""); 
+		return 1;
+	} else if (bln > B58MAXLN) {  
+		LERR("string too long");
+	}
+	eln = B58MAXENCLN; // eln must be set to buffer size before calling b58enc
+	bool r = b58enc(buf, &eln, b, bln);
+	if (!r) LERR("b58encode error");
+	eln = eln - 1;  // b58enc add \0 at the end of the encode string
+	lua_pushlstring (L, buf, eln); 
+	return 1;
+}
+
+
+int ll_b58decode(lua_State *L) {
+	// lua api: b58decode(encstr) => str | (nil, error msg)
+	size_t bln, eln;
+	unsigned char buf[B58MAXENCLN]; 	// buffer to receive decoded string
+	const char *e = luaL_checklstring(L,1,&eln); // encoded data
+	if (eln == 0) { // empty string special case 
+		lua_pushliteral (L, ""); 
+		return 1;
+	} else if (eln > B58MAXENCLN) {
+		lua_pushnil (L);
+		lua_pushfstring(L, "string too long");
+		return 2;
+	}
+	bln = B58MAXENCLN; // give the result buffer size to b58tobin
+	bool r = b58tobin(buf, &bln, e, eln);
+	if (!r) { 
+		lua_pushnil (L);
+		lua_pushfstring(L, "b58decode error");
+		return 2;         
+	} 
+	// b58tobin returns its result at the _end_ of buf!!!
+	lua_pushlstring (L, buf+B58MAXENCLN-bln, bln); 
+	return 1;
 }

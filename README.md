@@ -4,7 +4,20 @@
 Luazen is a small library with various encoding, compression and 
 cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces (except for blake2b hash function)
 
+The last stable version is v0.9 at https://github.com/philanc/luazen/releases/tag/v0.9
+
 ### Recent changes
+
+March-2018: v0.10 - some significant changes:
+
+* The code has been reorganized to make it easier to build variants of the library with an "a la carte" selection of modules
+
+* Some functions have been renamed (see API below)
+
+* Added  (X)Chacha20-Poly1305 authenticated encryption with additional data (AEAD)
+
+* The ed25519 signature functions use sha512 instead of blake2b hash
+
 
 August-2017
 
@@ -19,12 +32,13 @@ Compression functions based on the amazing **BriefLZ** algorithm by Joergen Ibse
 Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used)
 
 Cryptographic functions include:
+- **(X)Chacha20-Poly1305 authenticated encryption with additional data (AEAD)
 - **Norx** authenticated encryption with additional data (AEAD) - this is the default 64-4-1 variant (256-bit key and nonce, 4 rounds)
-- **Blake2b** cryptographic hash function
-- **Argon2i**, a modern key derivation function based on Blake2. Like 
+- **Blake2b**, **Sha512** cryptographic hash functions,
+- **Argon2i**, a modern key derivation function based on Blake2b. Like 
 scrypt, it is designed to be expensive in both CPU and memory.
 - **Curve25519**-based key exchange and public key encryption,
-- **Ed25519**-based signature function using Blake2b hash instead of sha512,
+- **Ed25519**-based signature function
 
 Legacy cryptographic functions include **md5**,  and **rc4** (a config option allows to build luazen without the legacy functions)
 
@@ -90,7 +104,7 @@ xor(str, key)
 
 --- Authenticated encryption functions (Norx encryption algorithm)
 
-aead_encrypt(encrypt(k, n, m [, ninc [, aad [, zad]]]) return c
+norx_encrypt(encrypt(k, n, m [, ninc [, aad [, zad]]]) return c
 	k: key string (32 bytes)
 	n: nonce string (32 bytes)
 	m: message (plain text) string 
@@ -106,7 +120,7 @@ aead_encrypt(encrypt(k, n, m [, ninc [, aad [, zad]]]) return c
 	return encrypted text string c with aad prefix and zad suffix
 	(c includes the 32-byte MAC, so #c = #aad + #m + 32 + #zad)
 
-aead_decrypt(k, n, c [, ninc [, aadln [, zadln]]]) 
+norx_decrypt(k, n, c [, ninc [, aadln [, zadln]]]) 
 	    return (m, aad, zad) | (nil, msg)
 	k: key string (32 bytes)
 	n: nonce string (32 bytes)
@@ -116,31 +130,57 @@ aead_decrypt(k, n, c [, ninc [, aadln [, zadln]]])
 	zadln: length of the AD suffix  (default to 0)
 	return (plain text, aad, zad) or (nil, errmsg) if MAC is not valid
 
+--- Authenticated encryption functions ((x)chacha20 encryption algorithm
+    with a poly1305 MAC)
+
+xchacha_encrypt(encrypt(k, n, m [, ninc [, aad]]) return c
+	k: key string (32 bytes)
+	n: nonce string (24 bytes)
+	m: message (plain text) string 
+	ninc: optional nonce increment (useful when encrypting a long message
+	     as a sequence of block). The same parameter n can be used for 
+	     the sequence. ninc is added to n for each block, so the actual
+	     nonce used for each block encryption is distinct.
+	     ninc defaults to 0 (the nonce n is used as-is)
+	aad: prefix additional data (AD) (not encrypted, prepended to the 
+	     encrypted message). default to the empty string
+	return encrypted text string c with aad prefix and zad suffix
+	(c includes the 16-byte MAC, so #c = #aad + #m + 16)
+
+xchacha_decrypt(k, n, c [, ninc [, aadln ]]) 
+	    return (m, aad) | (nil, msg)
+	k: key string (32 bytes)
+	n: nonce string (24 bytes)
+	c: encrypted message string 
+	ninc: optional nonce increment (see above. defaults to 0)
+	aadln: length of the AD prefix (default to 0)
+	return (plain text, aad) or (nil, errmsg) if MAC is not valid
+
 
 --- Curve25519-based key exchange
 
-public_key(sk) => pk
+ec25519_public_key(sk) => pk
 	return the public key associated to a curve25519 secret key
 	sk is the secret key as a 32-byte string
 	pk is the associated public key as a 32-byte string
 
-keypair() => pk, sk
-	generates a pair of curve25519 keys (public key, secret key)
-	pk is the public key as a 32-byte string
-	sk is the secret key as a 32-byte string
-	
-	Note: This is a convenience function:
-		pk, sk = keypair()  --is equivalent to
-		sk = randombytes(32); pk = public_key(sk)
+keypair() has been removed to eliminate hard dependency to 
+the included randombyte() function. It can be replaced with:
+		function keypair()
+			local sk = luazen.randombytes(32)
+			return luazen.ec25519_public_key(sk), sk
+		end
 
-key_exchange(sk, pk) => k
-	DH key exchange. Return a session key k used to encrypt 
-	or decrypt a text.
+ec25519_shared_secret(sk, pk) => ss
+	DH key exchange. Return a common shared secret ss.
+	the shared secret is a 32-byte string. It could be used as-is
+	or passed to a derivation function to generate a temporary
+	session key.
 	sk is the secret key of the party invoking the function 
 	("our secret key"). 
 	pk is the public key of the other party 
 	("their public key").
-	sk, pk and k are 32-byte strings
+	sk, pk and ss are 32-byte strings
 
 
 --- Blake2b cryptographic hash
@@ -179,32 +219,27 @@ sign_public_key(sk) => pk
 	sk is the secret key as a 32-byte string
 	pk is the associated public key as a 32-byte string
 
-sign_keypair() => pk, sk
-	generates a pair of ed25519 signature keys (public key, secret key)
-	pk is the public signature key as a 32-byte string
-	sk is the secret signature key as a 32-byte string
+sign_keypair() has been removed to eliminate hard dependency to 
+the included randombyte() function. It can be replaced with:
+		function keypair()
+			local sk = luazen.randombytes(32)
+			return luazen.ed25519_public_key(sk), sk
+		end
 
-	Note: This is a convenience function:
-		pk, sk = sign_keypair()  	--is equivalent to
-		sk = randombytes(32); pk = sign_public_key(sk)
-
-sign(sk, text) => sig
+ed25519_sign(sk, text) => sig
 	sign a text with a secret key
 	sk is the secret key as a 32-byte string
 	text is the text to sign as a string
 	Return the text signature as a 64-byte string.
 
-check(sig, pk, text) => is_valid
+ed25519_check(sig, pk, text) => is_valid
 	check a text signature with a public key
 	sig is the signature to verify, as a 64-byte string
 	pk is the public key as a 32-byte string
 	text is the signed text
 	Return a boolean indicating if the signature is valid or not.
 	
-	Note: curve25519 key pairs (generated with keypair())
-	cannot be used for ed25519 signature. The signature key pairs 
-	must be generated with sign_keypair().
-
+	Note: curve25519 key pairs cannot be used for ed25519 signature. 
 
 --- Argon2i password derivation 
 
@@ -263,7 +298,7 @@ Luazen is distributed under the terms of the MIT License.
 The luazen library includes some code from various authors (see src/):
 - brieflz compression by Joergen Ibsen, BSD-like - see https://github.com/jibsen/brieflz
 - lzf functions by  Marc Alexander Lehmann (BSD, see src/lzf* headers)
-- blake2b, argon2i, ed/x25519 functions by Loup Vaillant (blake2b comes from the RFC 7693 reference code; ed/x25519 taken from Supercop's ref10 implementation). Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
+- blake2b, argon2i, ec/ed25519 and xchacha20-poly1305 from Loup Vaillant's Monocypher library. Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
 - norx from the reference implementation by Samuel Neves and Philipp Jovanovic (public domain or CC0) - see https://norx.io/
 - base64 functions by Luiz Henrique de Figueiredo (public domain)
 - base58 functions by Luke Dashjr (MIT)
@@ -273,4 +308,4 @@ See [src/crypto_licenses.md](https://github.com/philanc/luazen/blob/master/src/c
 
 (the code from these sources has been more or less modified - all bugs are probably mine!)
 
-Copyright (c) 2017  Phil Leblanc 
+Copyright (c) 2018  Phil Leblanc 

@@ -69,48 +69,56 @@ print(_VERSION, lz.VERSION )
 print("------------------------------------------------------------")
 
 ------------------------------------------------------------------------
-print("testing lzf compression...")
-do
+if lz.lzf then do
+	print("testing lzf...")
 	assert(lz.lzf("") == "")
 	assert(lz.unlzf("") == "")
 	local x
 	x = "Hello world"; assert(lz.unlzf(lz.lzf(x)) == x)
 	x = ("a"):rep(301); assert(lz.unlzf(lz.lzf(x)) == x)
 	assert(#lz.lzf(("a"):rep(301)) < 30)
+	end
 end
 
 ------------------------------------------------------------------------
-print("testing blz compression...")
-do
+if lz.blz then do
+	print("testing blz...")
 	assert(lz.blz("") == "\0\0\0\0")
 	assert(lz.unblz("\0\0\0\0") == "")
 	local x
 	x = "Hello world"; assert(lz.unblz(lz.blz(x)) == x)
 	x = ("a"):rep(301); assert(lz.unblz(lz.blz(x)) == x)
 	assert(#lz.blz(("a"):rep(301)) < 30)
+	end
 end
 
 ------------------------------------------------------------------------
-print("testing luazen legacy...")
+if lz.randombytes then do
+	print("testing random...")
+	local x = lz.randombytes(16)
+	assert(#x == 16)
+	end--do
+end
 
--- xor
-do
+------------------------------------------------------------------------
+if lz.xor then do
+	print("testing xor...")
 	local xor = lz.xor
-	pa5 = xts'aa55'; p5a = xts'55aa'; p00 = xts'0000'; pff = xts'ffff'
-	assert(xor(pa5, p00) == pa5)
-	assert(xor(pa5, pff) == p5a)
-	assert(xor(pa5, pa5) == p00)
-	assert(xor(pa5, p5a) == pff)
+	assert(xor(xts'aa55', xts'0000') == xts'aa55')
+	assert(xor(xts'aa55', xts'ffff') == xts'55aa')
+	assert(xor(xts'aa55', xts'aa55') == xts'0000')
+	assert(xor(xts'aa55', xts'55aa') == xts'ffff')
 	-- check that 1. result is always same length as plaintext
 	-- and 2. key wraps around as needed
 	assert(xor((xts"aa"):rep(1), (xts"ff"):rep(31)) == (xts"55"):rep(1))
 	assert(xor((xts"aa"):rep(31), (xts"ff"):rep(17)) == (xts"55"):rep(31))
 	assert(xor((xts"aa"):rep(32), (xts"ff"):rep(31)) == (xts"55"):rep(32))
+	end
 end
 
 ------------------------------------------------------------------------
--- rc4
 if lz.rc4 then do
+	print("testing rc4...")
 	local k = ('1'):rep(16)
 	local plain = 'abcdef'
 	local encr = lz.rc4(plain, k)
@@ -125,6 +133,7 @@ end
 ------------------------------------------------------------------------
 -- rabbit
 if lz.rabbit then do
+	print("testing rabbit...")
 	-- quick test with some eSTREAM test vectors
 	local key, iv, txt, exp, ec
 	local key0 = ('\0'):rep(16)
@@ -135,14 +144,13 @@ if lz.rabbit then do
 				8D4ADC7032298F7BD4EFF504ACA6295F
 				668FBF478ADB2BE51E6CDE292B82DE2A ]]
 	assert(ec == exp)
-	
+	--
 	iv = xts'2717F4D21A56EBA6'
 	ec = lz.rabbit(txt0, key0, iv)
 	exp = xts[[	4D1051A123AFB670BF8D8505C8D85A44
 				035BC3ACC667AEAE5B2CF44779F2C896
 				CB5115F034F03D31171CA75F89FCCB9F ]]
 	assert(ec == exp)
-	
 	--Set 5, vector# 63
 	iv = xts "0000000000000001"
 	ec = lz.rabbit(txt0, key0, iv)
@@ -150,7 +158,6 @@ if lz.rabbit then do
 				F531A454D31B669BCD8BAAD78C6C9994
 				FFCCEC7ACB22F914A072DA22A617C0B7 ]]
 	assert(ec == exp)
-	
 	--Set6, vector# 0
 	key = xts "0053A6F94C9FF24598EB3E91E4378ADD"
 	iv =  xts "0D74DB42A91077DE"
@@ -165,15 +172,14 @@ end--if
 ------------------------------------------------------------------------
 -- md5
 if lz.md5 then do
+	print("testing md5...")
 	assert(stx(lz.md5('')) == 'd41d8cd98f00b204e9800998ecf8427e')
 	assert(stx(lz.md5('abc')) == '900150983cd24fb0d6963f7d28e17f72')
 	end--do
 end--if
 ------------------------------------------------------------------------
-print("testing base64, base58...")
-
--- b64 encode/decode
-do 
+if lz.b64encode then do 
+	print("testing base64...")
 	local be = lz.b64encode
 	local bd = lz.b64decode
 	--
@@ -199,11 +205,12 @@ do
 	assert(bd"YWFhYWFhYQ" == "aaaaaaa") -- not well-formed (no padding)
 	assert(bd"YWF\nhY  W\t\r\nFhYQ" == "aaaaaaa") -- no padding, whitespaces
 	assert(bd(be(xts"0001020300" )) == xts"0001020300")
+	end--do
 end --b64
 
 ------------------------------------------------------------------------
--- b58encode  (check on-line at eg. http://lenschulwitz.com/base58)
-do
+if lz.b58encode then do 
+	print("testing base58...")
 	assert(lz.b58encode(xts'01') == '2')
 	assert(lz.b58encode(xts'0001') == '12')
 	assert(lz.b58encode('') == '')
@@ -225,162 +232,166 @@ do
 	assert(lz.b58decode('JxF12TrwXzT5jvT') == 'Hello world')
 	assert(lz.b58decode(e1) == x1)
 	assert(lz.b58decode(e2) == x2)
+	end--do
 end
 ------------------------------------------------------------------------
-print("testing norx aead...")
+if lz.norx_encrypt then do 
+	print("testing norx...")
+	k = ('k'):rep(32)  -- key
+	n = ('n'):rep(32)  -- nonce
+	a = ('a'):rep(16)  -- aad  (61 61 ...)
+	z = ('z'):rep(8)   -- zad  (7a 7a ...)
+	m = ('\0'):rep(83) -- plain text
 
-k = ('k'):rep(32)  -- key
-n = ('n'):rep(32)  -- nonce
-a = ('a'):rep(16)  -- aad  (61 61 ...)
-z = ('z'):rep(8)   -- zad  (7a 7a ...)
-m = ('\0'):rep(83) -- plain text
+	c = lz.norx_encrypt(k, n, m, 0, a, z)
+	assert(#c == #a + #m + 32 + #z)
+	mm, aa, zz = lz.norx_decrypt(k, n, c, 0, 16, 8)
+	assert(mm == m and aa == a and zz == z)
 
-c = lz.aead_encrypt(k, n, m, 0, a, z)
-assert(#c == #a + #m + 32 + #z)
-mm, aa, zz = lz.aead_decrypt(k, n, c, 0, 16, 8)
-assert(mm == m and aa == a and zz == z)
+	-- test defaults
+	c = lz.norx_encrypt(k, n, m, 0, a) -- no zad
+	assert(#c == #a + #m + 32)
+	mm, aa, zz = lz.norx_decrypt(k, n, c, 0, 16)
+	assert(mm == m and aa == a and #zz == 0)
+	--
+	c = lz.norx_encrypt(k, n, m) -- no ninc, no aad, no zad
+	assert(#c == #m + 32)
+	mm, aa, zz = lz.norx_decrypt(k, n, c)
+	assert(mm == m and #aa == 0 and #zz == 0)
 
--- test defaults
-c = lz.aead_encrypt(k, n, m, 0, a) -- no zad
-assert(#c == #a + #m + 32)
-mm, aa, zz = lz.aead_decrypt(k, n, c, 0, 16)
-assert(mm == m and aa == a and #zz == 0)
---
-c = lz.aead_encrypt(k, n, m) -- no ninc, no aad, no zad
-assert(#c == #m + 32)
-mm, aa, zz = lz.aead_decrypt(k, n, c)
-assert(mm == m and #aa == 0 and #zz == 0)
+	-- same encryption stream
+	m1 = ('\0'):rep(85) -- plain text
+	c1 = lz.norx_encrypt(k, n, m1)
+	assert(c1:sub(1,83) == c:sub(1,83))
 
--- same encryption stream
-m1 = ('\0'):rep(85) -- plain text
-c1 = lz.aead_encrypt(k, n, m1)
-assert(c1:sub(1,83) == c:sub(1,83))
+	-- mac error
+	r, msg = lz.norx_decrypt(k, n, c .. "!")
+	assert(not r and msg == "decrypt error")
+	--
+	c = lz.norx_encrypt(k, n, m, 0, a, z)
+	r, msg = lz.norx_decrypt(k, n, c) -- no aad and zad
+	assert(not r and msg == "decrypt error")
+	-- replace unencrypted aad 'aaa...' with 'bbb...'
+	c1 = ('b'):rep(16) .. c:sub(17); assert(#c == #c1)
+	r, msg = lz.norx_decrypt(k, n, c1, 0, 16, 8)
+	assert(not r and msg == "decrypt error")
 
--- mac error
-r, msg = lz.aead_decrypt(k, n, c .. "!")
-assert(not r and msg == "decrypt error")
---
-c = lz.aead_encrypt(k, n, m, 0, a, z)
-r, msg = lz.aead_decrypt(k, n, c) -- no aad and zad
-assert(not r and msg == "decrypt error")
--- replace unencrypted aad 'aaa...' with 'bbb...'
-c1 = ('b'):rep(16) .. c:sub(17); assert(#c == #c1)
-r, msg = lz.aead_decrypt(k, n, c1, 0, 16, 8)
-assert(not r and msg == "decrypt error")
-
--- test nonce increment
-c = lz.aead_encrypt(k, n, m) 
-c1 = lz.aead_encrypt(k, n, m, 1) 
-c2 = lz.aead_encrypt(k, n, m, 2) 
-assert(#c1 == #m + 32)
-assert((c ~= c1) and (c ~= c2) and (c1 ~= c2))
-r, msg = lz.aead_decrypt(k, n, c1)
-assert(not r and msg == "decrypt error")
-r, msg = lz.aead_decrypt(k, n, c1, 1)
-assert(r == m)
-
--- check aliases: removed. these are different functions in Lua5.1 !!
---~ assert(lz.aead_encrypt == lz.encrypt)
---~ assert(lz.aead_decrypt == lz.decrypt)
-
-------------------------------------------------------------------------
--- blake2b tests
-
-print("testing blake2b...")
-
-t = "The quick brown fox jumps over the lazy dog"
-e = hextos(
-	"A8ADD4BDDDFD93E4877D2746E62817B116364A1FA7BC148D95090BC7333B3673" ..
-	"F82401CF7AA2E4CB1ECD90296E3F14CB5413F8ED77BE73045B13914CDCD6A918")
+	-- test nonce increment
+	c = lz.norx_encrypt(k, n, m) 
+	c1 = lz.norx_encrypt(k, n, m, 1) 
+	c2 = lz.norx_encrypt(k, n, m, 2) 
+	assert(#c1 == #m + 32)
+	assert((c ~= c1) and (c ~= c2) and (c1 ~= c2))
+	r, msg = lz.norx_decrypt(k, n, c1)
+	assert(not r and msg == "decrypt error")
+	r, msg = lz.norx_decrypt(k, n, c1, 1)
+	assert(r == m)
 	
--- test convenience function
-dig = lz.blake2b(t)
-assert(e == dig)
+	end--do
+end--if norx
 
--- test chunked interface
-ctx = lz.blake2b_init()
-lz.blake2b_update(ctx, "The q")
-lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
-dig = lz.blake2b_final(ctx)
-assert(e == dig)
+------------------------------------------------------------------------
+if lz.blake2b then do 
+	print("testing blake2b...")
+	local e, t, dig, ctx, dig51, dig52, dig53, dig54, dig55
+	t = "The quick brown fox jumps over the lazy dog"
+	e = hextos(
+		"A8ADD4BDDDFD93E4877D2746E62817B116364A1FA7BC148D95090BC7333B3673" ..
+		"F82401CF7AA2E4CB1ECD90296E3F14CB5413F8ED77BE73045B13914CDCD6A918")
+		
+	-- test convenience function
+	dig = lz.blake2b(t)
+	assert(e == dig)
 
--- test shorter digests
-ctx = lz.blake2b_init(5)
-lz.blake2b_update(ctx, "The q")
-lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
-dig51 = lz.blake2b_final(ctx)
-ctx = lz.blake2b_init(5)
-lz.blake2b_update(ctx, "The quick b")
-lz.blake2b_update(ctx, "rown fox jumps over the lazy dog")
-dig52 = lz.blake2b_final(ctx)
-assert(#dig51 == 5 and dig51 == dig52)
+	-- test chunked interface
+	ctx = lz.blake2b_init()
+	lz.blake2b_update(ctx, "The q")
+	lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
+	dig = lz.blake2b_final(ctx)
+	assert(e == dig)
 
--- same, with a key
-ctx = lz.blake2b_init(5, "somekey")
-lz.blake2b_update(ctx, "The q")
-lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
-dig53 = lz.blake2b_final(ctx)
-ctx = lz.blake2b_init(5, "somekey")
-lz.blake2b_update(ctx, "The quick b")
-lz.blake2b_update(ctx, "rown fox jumps over the lazy dog")
-dig54 = lz.blake2b_final(ctx)
-assert(#dig53 == 5 and dig53 == dig54)
+	-- test shorter digests
+	ctx = lz.blake2b_init(5)
+	lz.blake2b_update(ctx, "The q")
+	lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
+	dig51 = lz.blake2b_final(ctx)
+	ctx = lz.blake2b_init(5)
+	lz.blake2b_update(ctx, "The quick b")
+	lz.blake2b_update(ctx, "rown fox jumps over the lazy dog")
+	dig52 = lz.blake2b_final(ctx)
+	assert(#dig51 == 5 and dig51 == dig52)
 
-ctx = lz.blake2b_init(5, ("\0"):rep(0)) -- is it same as no key??
-lz.blake2b_update(ctx, "The q")
-lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
-dig55 = lz.blake2b_final(ctx)
-assert(dig51==dig55)
+	-- same, with a key
+	ctx = lz.blake2b_init(5, "somekey")
+	lz.blake2b_update(ctx, "The q")
+	lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
+	dig53 = lz.blake2b_final(ctx)
+	ctx = lz.blake2b_init(5, "somekey")
+	lz.blake2b_update(ctx, "The quick b")
+	lz.blake2b_update(ctx, "rown fox jumps over the lazy dog")
+	dig54 = lz.blake2b_final(ctx)
+	assert(#dig53 == 5 and dig53 == dig54)
+
+	ctx = lz.blake2b_init(5, ("\0"):rep(0)) -- is it same as no key??
+	lz.blake2b_update(ctx, "The q")
+	lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
+	dig55 = lz.blake2b_final(ctx)
+	assert(dig51==dig55)
+	end--do
+end
 
 
 ------------------------------------------------------------------------
--- x25519 tests
+if lz.ec25519_public_key then do
+	print("testing curve25519...")
+	local function keypair() 
+		local sk = lz.randombytes(32)
+		return lz.ec25519_public_key(sk), sk
+	end
+	local ask, apk, bsk, bpk, k1, k2
+	apk, ask = keypair() -- alice keypair
+	bpk, bsk = keypair() -- bob keypair
 
-print("testing x25519 key exchange...")
-
-apk, ask = lz.x25519_keypair() -- alice keypair
-bpk, bsk = lz.x25519_keypair() -- bob keypair
-assert(apk == lz.x25519_public_key(ask))
-
-k1 = lz.key_exchange(ask, bpk)
-k2 = lz.key_exchange(bsk, apk)
-assert(k1 == k2)
-
-
-------------------------------------------------------------------------
--- ed25519 signature tests
-
-print("testing ed25519 signature...")
-
-t = "The quick brown fox jumps over the lazy dog"
-
-pk, sk = lz.sign_keypair() -- signature keypair
-assert(pk == lz.sign_public_key(sk))
-
-sig = lz.sign(sk, pk, t)
-assert(#sig == 64)
---~ px(sig, 'sig')
-
--- check signature
-assert(lz.check(sig, pk, t))
-
--- modified text doesn't check
-assert(not lz.check(sig, pk, t .. "!"))
+	k1 = lz.ec25519_shared_secret(ask, bpk)
+	k2 = lz.ec25519_shared_secret(bsk, apk)
+	assert(k1 == k2)
+	end--do
+end
 
 
 ------------------------------------------------------------------------
--- password derivation argon2i tests
+if lz.ed25519_public_key then do
+	print("testing ed25519...")
+	local t, pk, sk, sig
+	local function keypair() 
+		local sk = lz.randombytes(32)
+		return lz.ed25519_public_key(sk), sk
+	end
+	t = "The quick brown fox jumps over the lazy dog"
+	pk, sk = keypair() -- signature keypair
+	--
+	sig = lz.ed25519_sign(sk, pk, t)
+	assert(#sig == 64)
+	--~ px(sig, 'sig')
+	-- check signature
+	assert(lz.ed25519_check(sig, pk, t))
+	-- modified text doesn't check
+	assert(not lz.ed25519_check(sig, pk, t .. "!"))
+	end--do
+end
 
-print("testing argon2i...")
-
-pw = "hello"
-salt = "salt salt salt"
-k = ""
-c0 = os.clock()
-k = lz.argon2i(pw, salt, 100000, 10)
-assert(#k == 32)
-print("argon2i (100MB, 10 iter) Execution time (sec): ", os.clock()-c0)
-
+------------------------------------------------------------------------
+if lz.argon2i then do
+	print("testing argon kdf...")
+	pw = "hello"
+	salt = "salt salt salt"
+	k = ""
+	c0 = os.clock()
+	k = lz.argon2i(pw, salt, 100000, 10)
+	assert(#k == 32)
+	print("argon2i (100MB, 10 iter) Execution time (sec): ", os.clock()-c0)
+	end--do
+end
 
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------

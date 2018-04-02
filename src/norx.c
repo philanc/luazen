@@ -1,3 +1,11 @@
+// Copyright (c) 2018  Phil Leblanc  -- see LICENSE file
+// ---------------------------------------------------------------------
+//
+// NORX authenticated encryption - https://norx.io/
+//
+// ---------------------------------------------------------------------
+// Original NORX public domain dedication:
+
 /*
  * NORX reference source code package - reference C implementations
  *
@@ -13,11 +21,165 @@
  * You should have received a copy of the CC0 Public Domain Dedication along with
  * this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
+ 
+//----------------------------------------------------------------------
+//-- content of original file norx_config.h
+
+#define NORX_W 64           /* Word size */
+#define NORX_L 4            /* Round number */
+#define NORX_P 1            /* Parallelism degree */
+#define NORX_T (NORX_W * 4) /* Tag size */
+
+//----------------------------------------------------------------------
+//-- content of original file norx.h
+
 #include <stddef.h>
-#include <stdlib.h>
+#include <stdint.h>
+
+#if   NORX_W == 64
+	typedef uint64_t norx_word_t;
+#elif NORX_W == 32
+	typedef uint32_t norx_word_t;
+#else
+	#error "Invalid word size!"
+#endif
+
+typedef struct norx_state__
+{
+    norx_word_t S[16];
+} norx_state_t[1];
+
+typedef enum tag__
+{
+    HEADER_TAG  = 0x01,
+    PAYLOAD_TAG = 0x02,
+    TRAILER_TAG = 0x04,
+    FINAL_TAG   = 0x08,
+    BRANCH_TAG  = 0x10,
+    MERGE_TAG   = 0x20
+} tag_t;
+
+/* High-level operations */
+void norx_aead_encrypt(
+        unsigned char *c, size_t *clen,
+        const unsigned char *a, size_t alen,
+        const unsigned char *m, size_t mlen,
+        const unsigned char *z, size_t zlen,
+        const unsigned char *nonce, const unsigned char *key);
+
+int norx_aead_decrypt(
+        unsigned char *m, size_t *mlen,
+        const unsigned char *a, size_t alen,
+        const unsigned char *c, size_t clen,
+        const unsigned char *z, size_t zlen,
+        const unsigned char *nonce, const unsigned char *key);
+
+//----------------------------------------------------------------------
+//-- content of original file norx_util.h
+
+/* Workaround for C89 compilers */
+#if !defined(__cplusplus) && (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 199901L)
+  #if   defined(_MSC_VER)
+    #define NORX_INLINE __inline
+  #elif defined(__GNUC__)
+    #define NORX_INLINE __inline__
+  #else
+    #define NORX_INLINE
+  #endif
+#else
+  #define NORX_INLINE inline
+#endif
+
+#include <limits.h>
+#include <stddef.h>
 #include <string.h>
-#include "norx_util.h"
-#include "norx.h"
+#include <stdint.h>
+
+#define STR_(x) #x
+#define STR(x) STR_(x)
+#define PASTE_(A, B, C) A ## B ## C
+#define PASTE(A, B, C) PASTE_(A, B, C)
+#define BYTES(x) (((x) + 7) / 8)
+#define WORDS(x) (((x) + (NORX_W-1)) / NORX_W)
+
+#define BITS(x) (sizeof(x) * CHAR_BIT)
+#define ROTL(x, c) ( ((x) << (c)) | ((x) >> (BITS(x) - (c))) )
+#define ROTR(x, c) ( ((x) >> (c)) | ((x) << (BITS(x) - (c))) )
+
+static NORX_INLINE uint32_t load32(const void * in)
+{
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    uint32_t v;
+    memcpy(&v, in, sizeof v);
+    return v;
+#else
+    const uint8_t * p = (const uint8_t *)in;
+    return ((uint32_t)p[0] <<  0) |
+           ((uint32_t)p[1] <<  8) |
+           ((uint32_t)p[2] << 16) |
+           ((uint32_t)p[3] << 24);
+#endif
+}
+
+
+static NORX_INLINE uint64_t load64(const void * in)
+{
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    uint64_t v;
+    memcpy(&v, in, sizeof v);
+    return v;
+#else
+    const uint8_t * p = (const uint8_t *)in;
+    return ((uint64_t)p[0] <<  0) |
+           ((uint64_t)p[1] <<  8) |
+           ((uint64_t)p[2] << 16) |
+           ((uint64_t)p[3] << 24) |
+           ((uint64_t)p[4] << 32) |
+           ((uint64_t)p[5] << 40) |
+           ((uint64_t)p[6] << 48) |
+           ((uint64_t)p[7] << 56);
+#endif
+}
+
+
+static NORX_INLINE void store32(void * out, const uint32_t v)
+{
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    memcpy(out, &v, sizeof v);
+#else
+    uint8_t * p = (uint8_t *)out;
+    p[0] = (uint8_t)(v >>  0);
+    p[1] = (uint8_t)(v >>  8);
+    p[2] = (uint8_t)(v >> 16);
+    p[3] = (uint8_t)(v >> 24);
+#endif
+}
+
+
+static NORX_INLINE void store64(void * out, const uint64_t v)
+{
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    memcpy(out, &v, sizeof v);
+#else
+    uint8_t * p = (uint8_t *)out;
+    p[0] = (uint8_t)(v >>  0);
+    p[1] = (uint8_t)(v >>  8);
+    p[2] = (uint8_t)(v >> 16);
+    p[3] = (uint8_t)(v >> 24);
+    p[4] = (uint8_t)(v >> 32);
+    p[5] = (uint8_t)(v >> 40);
+    p[6] = (uint8_t)(v >> 48);
+    p[7] = (uint8_t)(v >> 56);
+#endif
+}
+
+static void* (* const volatile burn)(void*, int, size_t) = memset;
+
+//----------------------------------------------------------------------
+//-- content of original file norx.c
+
+#include <stdlib.h>
+
 
 const char * norx_version = "3.0";
 
@@ -299,38 +461,6 @@ void norx_absorb_data(norx_state_t state, const unsigned char * in, size_t inlen
     }
 }
 
-#if NORX_P != 1 /* only required in parallel modes */
-static NORX_INLINE void norx_branch(norx_state_t state, uint64_t lane)
-{
-    size_t i;
-    norx_word_t * S = state->S;
-
-    S[15] ^= BRANCH_TAG;
-    norx_permute(state);
-
-    /* Inject lane ID */
-    for (i = 0; i < WORDS(NORX_R); ++i) {
-        S[i] ^= lane;
-    }
-}
-
-/* state = state xor state1 */
-static NORX_INLINE void norx_merge(norx_state_t state, norx_state_t state1)
-{
-    size_t i;
-    norx_word_t * S = state->S;
-    norx_word_t * S1 = state1->S;
-
-    S1[15] ^= MERGE_TAG;
-    norx_permute(state1);
-
-    for (i = 0; i < 16; ++i) {
-        S[i] ^= S1[i];
-    }
-}
-#endif
-
-#if NORX_P == 1 /* Sequential encryption/decryption */
 void norx_encrypt_data(norx_state_t state, unsigned char *out, const unsigned char * in, size_t inlen)
 {
     if (inlen > 0)
@@ -376,217 +506,6 @@ void norx_decrypt_data(norx_state_t state, unsigned char *out, const unsigned ch
         #endif
     }
 }
-
-#elif NORX_P > 1 /* Parallel encryption/decryption */
-void norx_encrypt_data(norx_state_t state, unsigned char *out, const unsigned char * in, size_t inlen)
-{
-    if (inlen > 0)
-    {
-        size_t i;
-        norx_state_t lane[NORX_P];
-
-        /* Initialize states + branch */
-        for (i = 0; i < NORX_P; ++i) {
-            memcpy(lane[i], state, sizeof lane[i]);
-            norx_branch(lane[i], i);
-        }
-
-        /* Parallel payload processing */
-        for (i = 0; inlen >= BYTES(NORX_R); ++i) {
-            norx_encrypt_block(lane[i%NORX_P], out, in);
-            #if defined(NORX_DEBUG)
-            printf("Encrypt block (lane: %lu)\n", i%NORX_P);
-            norx_debug(lane[i%NORX_P], in, BYTES(NORX_R), out, BYTES(NORX_R));
-            #endif
-            inlen -= BYTES(NORX_R);
-            out   += BYTES(NORX_R);
-            in    += BYTES(NORX_R);
-        }
-        norx_encrypt_lastblock(lane[i%NORX_P], out, in, inlen);
-        #if defined(NORX_DEBUG)
-        printf("Encrypt lastblock (lane: %lu)\n", i%NORX_P);
-        norx_debug(lane[i%NORX_P], in, inlen, out, inlen);
-        #endif
-
-        /* Merge */
-        memset(state, 0, sizeof(norx_state_t));
-        for (i = 0; i < NORX_P; ++i) {
-            norx_merge(state, lane[i]);
-            burn(lane[i], 0, sizeof(norx_state_t));
-        }
-
-        #if defined(NORX_DEBUG)
-        printf("Encryption finalised\n");
-        norx_debug(state, NULL, 0, NULL, 0);
-        #endif
-    }
-}
-
-void norx_decrypt_data(norx_state_t state, unsigned char *out, const unsigned char * in, size_t inlen)
-{
-    if (inlen > 0)
-    {
-        size_t i;
-        norx_state_t lane[NORX_P];
-
-        /* Initialize states + branch */
-        for (i = 0; i < NORX_P; ++i) {
-            memcpy(lane[i], state, sizeof lane[i]);
-            norx_branch(lane[i], i);
-        }
-
-        /* Parallel payload processing */
-        for (i = 0; inlen >= BYTES(NORX_R); ++i) {
-            norx_decrypt_block(lane[i%NORX_P], out, in);
-            #if defined(NORX_DEBUG)
-            printf("Decrypt block (lane: %lu)\n", i%NORX_P);
-            norx_debug(lane[i%NORX_P], in, BYTES(NORX_R), out, BYTES(NORX_R));
-            #endif
-            inlen -= BYTES(NORX_R);
-            out   += BYTES(NORX_R);
-            in    += BYTES(NORX_R);
-        }
-        norx_decrypt_lastblock(lane[i%NORX_P], out, in, inlen);
-        #if defined(NORX_DEBUG)
-        printf("Decrypt lastblock (lane: %lu)\n", i%NORX_P);
-        norx_debug(lane[i%NORX_P], in, inlen, out, inlen);
-        #endif
-
-        /* Merge */
-        memset(state, 0, sizeof(norx_state_t));
-        for (i = 0; i < NORX_P; ++i) {
-            norx_merge(state, lane[i]);
-            burn(lane[i], 0, sizeof(norx_state_t));
-        }
-
-        #if defined(NORX_DEBUG)
-        printf("Decryption finalised\n");
-        norx_debug(state, NULL, 0, NULL, 0);
-        #endif
-    }
-}
-
-#elif NORX_P == 0 /* Unlimited parallelism */
-void norx_encrypt_data(norx_state_t state, unsigned char *out, const unsigned char * in, size_t inlen)
-{
-    if (inlen > 0)
-    {
-        size_t lane = 0;
-        norx_state_t sum;
-        norx_state_t state2;
-
-        memset(sum, 0, sizeof(norx_state_t));
-
-        while (inlen >= BYTES(NORX_R))
-        {
-            /* branch */
-            memcpy(state2, state, sizeof(norx_state_t));
-            norx_branch(state2, lane++);
-            /* encrypt */
-            norx_encrypt_block(state2, out, in);
-
-            #if defined(NORX_DEBUG)
-            printf("Encrypt block (lane: %lu)\n", lane - 1);
-            norx_debug(state2, in, BYTES(NORX_R), out, BYTES(NORX_R));
-            #endif
-
-            /* merge */
-            norx_merge(sum, state2);
-
-            inlen -= BYTES(NORX_R);
-            in    += BYTES(NORX_R);
-            out   += BYTES(NORX_R);
-        }
-
-        /* last block, 0 <= inlen < BYTES(NORX_R) */
-
-        /* branch */
-        memcpy(state2, state, sizeof(norx_state_t));
-        norx_branch(state2, lane++);
-
-        /* encrypt */
-        norx_encrypt_lastblock(state2, out, in, inlen);
-
-        #if defined(NORX_DEBUG)
-        printf("Encrypt lastblock (lane: %lu)\n", lane - 1);
-        norx_debug(state2, in, inlen, out, inlen);
-        #endif
-
-        /* merge */
-        norx_merge(sum, state2);
-
-        memcpy(state, sum, sizeof(norx_state_t));
-        burn(state2, 0, sizeof(norx_state_t));
-        burn(sum, 0, sizeof(norx_state_t));
-
-        #if defined(NORX_DEBUG)
-        printf("Encryption finalised\n");
-        norx_debug(state, NULL, 0, NULL, 0);
-        #endif
-    }
-}
-
-void norx_decrypt_data(norx_state_t state, unsigned char *out, const unsigned char * in, size_t inlen)
-{
-    if (inlen > 0)
-    {
-        size_t lane = 0;
-        norx_state_t sum;
-        norx_state_t state2;
-
-        memset(sum, 0, sizeof(norx_state_t));
-
-        while (inlen >= BYTES(NORX_R))
-        {
-            /* branch */
-            memcpy(state2, state, sizeof(norx_state_t));
-            norx_branch(state2, lane++);
-            /* decrypt */
-            norx_decrypt_block(state2, out, in);
-
-            #if defined(NORX_DEBUG)
-            printf("Decrypt block (lane: %lu)\n", lane - 1);
-            norx_debug(state2, in, BYTES(NORX_R), out, BYTES(NORX_R));
-            #endif
-
-            /* merge */
-            norx_merge(sum, state2);
-
-            inlen -= BYTES(NORX_R);
-            in    += BYTES(NORX_R);
-            out   += BYTES(NORX_R);
-        }
-
-        /* last block, 0 <= inlen < BYTES(NORX_R) */
-
-        /* branch */
-        memcpy(state2, state, sizeof(norx_state_t));
-        norx_branch(state2, lane++);
-
-        /* decrypt */
-        norx_decrypt_lastblock(state2, out, in, inlen);
-
-        #if defined(NORX_DEBUG)
-        printf("Decrypt lastblock (lane: %lu)\n", lane - 1);
-        norx_debug(state2, in, inlen, out, inlen);
-        #endif
-
-        /* merge */
-        norx_merge(sum, state2);
-
-        memcpy(state, sum, sizeof(norx_state_t));
-        burn(state2, 0, sizeof(norx_state_t));
-        burn(sum, 0, sizeof(norx_state_t));
-
-        #if defined(NORX_DEBUG)
-        printf("Decryption finalised\n");
-        norx_debug(state, NULL, 0, NULL, 0);
-        #endif
-    }
-}
-#else /* D < 0 */
-    #error "NORX_P cannot be < 0"
-#endif
 
 static NORX_INLINE void norx_finalise(norx_state_t state, unsigned char * tag, const unsigned char * k)
 {
@@ -697,3 +616,108 @@ int norx_aead_decrypt(
     burn(k, 0, sizeof(k));
     return result;
 }
+
+
+
+
+
+
+// ---------------------------------------------------------------------
+// Lua binding
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <assert.h>
+
+#include "lua.h"
+#include "lauxlib.h"
+# define LERR(msg) return luaL_error(L, msg)
+
+//----------------------------------------------------------------------
+
+
+int ll_norx_encrypt(lua_State *L) {
+	// Lua API: encrypt(k, n, m [, ninc [, aad [, zad]]])  return c
+	//  k: key string (32 bytes)
+	//  n: nonce string (32 bytes)
+	//	m: message (plain text) string 
+	//  ninc: optional nonce increment (useful when encrypting a long message
+	//       as a sequence of block). The same parameter n can be used for 
+	//       the sequence. ninc is added to n for each block, so the actual
+	//       nonce used for each block encryption is distinct.
+	//       ninc defaults to 0 (the nonce n is used as-is)
+	//  aad: prefix additional data (not encrypted, prepended to the 
+	//       encrypted message). default to the empty string
+	//  zad: suffix additional data (not encrypted, appended to the 
+	//       encrypted message). default to the empty string
+	//  return encrypted text string c with aad prefix and zad suffix
+	//  (c includes the 32-byte MAC: #c = #aad + #m + 32 + #zad)
+	int r;
+	size_t mln, nln, kln, aadln, zadln, cln, bufln;
+	const char *k = luaL_checklstring(L,1,&kln);
+	const char *n = luaL_checklstring(L,2,&nln);	
+	const char *m = luaL_checklstring(L,3,&mln);	
+	uint64_t ninc = luaL_optinteger(L, 4, 0);	
+	const char *aad = luaL_optlstring(L,5,"",&aadln);
+	const char *zad = luaL_optlstring(L,6,"",&zadln);
+	if (nln != 32) LERR("bad nonce size");
+	if (kln != 32) LERR("bad key size");
+	bufln = aadln + mln + 32 + zadln;
+	unsigned char * buf = malloc(bufln);
+	char actn[32]; // actual nonce "n + ninc"
+	memcpy(actn, n, 32); 
+	// addition modulo 2^64 over the first 8 bytes of n
+	// (uint addition overflow _is_ defined)
+	(*(uint64_t *) actn) = (*(uint64_t *) actn) + ninc;
+	norx_aead_encrypt(buf+aadln, &cln, aad, aadln, m, mln, 
+	                  zad, zadln, actn, k);
+	if (cln != mln+32) LERR("bad result size");
+	memcpy(buf, aad, aadln); 
+	memcpy(buf+aadln+cln, zad, zadln);
+	lua_pushlstring (L, buf, bufln); 
+	free(buf);
+	return 1;
+} // ll_norx_encrypt()
+
+int ll_norx_decrypt(lua_State *L) {
+	// Lua API: decrypt(k, n, c [, ninc [, aadln [, zadln]]]) 
+	//     return (m, aad, zad) | (nil, msg)
+	//  k: key string (32 bytes)
+	//  n: nonce string (32 bytes)
+	//	c: encrypted message string 
+	//  ninc: optional nonce increment (see above. defaults to 0)
+	//  aadln: length of the AD prefix (default to 0)
+	//  zadln: length of the AD suffix  (default to 0)
+	//  return (plain text, aad, zad) or (nil, errmsg) if MAC is not valid
+	int r = 0;
+	size_t cln, nln, kln, boxln, mln;
+	const char *k = luaL_checklstring(L, 1, &kln);
+	const char *n = luaL_checklstring(L, 2, &nln);	
+	const char *c = luaL_checklstring(L, 3, &cln);	
+	uint64_t ninc = luaL_optinteger(L, 4, 0);	
+	size_t aadln = luaL_optinteger(L, 5, 0);	
+	size_t zadln = luaL_optinteger(L, 6, 0);	
+	if (nln != 32) LERR("bad nonce size");
+	if (kln != 32) LERR("bad key size");
+	boxln = cln - aadln - zadln;
+	unsigned char * buf = malloc(boxln);
+	char actn[32]; // actual nonce "n + ninc"
+	memcpy(actn, n, 32); 
+	(*(uint64_t *) actn) = (*(uint64_t *) actn) + ninc;
+	r = norx_aead_decrypt(buf, &mln, c, aadln, c+aadln, 
+						  boxln, c+aadln+boxln, zadln, actn, k);
+	if (r != 0) { 
+		free(buf); 
+		lua_pushnil (L);
+		lua_pushliteral(L, "decrypt error");
+		return 2;         
+	} 
+	lua_pushlstring (L, buf, mln); 
+	lua_pushlstring (L, c, aadln); 
+	lua_pushlstring (L, c+aadln+boxln, zadln); 
+	free(buf);
+	return 3;
+} // ll_norx_decrypt()
+

@@ -10,23 +10,31 @@ LUAEXE= $(LUADIR)/bin/lua
 # ----------------------------------------------------------------------
 
 CC= gcc
+AR= ar
 
 CFLAGS= -Os -fPIC $(LUAINC) 
-LDFLAGS= -fPIC
+LDFLAGS= -fPIC 
 
-LUAZEN_O= luazen.o base58.o lzf_c.o lzf_d.o norx.o mono.o \
-          md5.o rc4.o randombytes.o \
-		  brieflz.o depacks.o
+OBJS= \
+	random.o base64.o base58.o blz.o  \
+	norx.o md5.o rc4.o xor.o lzf.o  blake2b.o  \
+	sha2.o x25519.o chacha.o
 
-luazen.so:  src/*.c src/*.h
+all: luazen.so
+
+luazen.so: luazen.a
+	$(CC) -shared -o luazen.so $(LDFLAGS) luazen.o luazen.a
+	strip luazen.so
+
+luazen.a: src/*.c 
 	$(CC) -c $(CFLAGS) src/*.c
-	$(CC) -shared $(LDFLAGS) -o luazen.so $(LUAZEN_O)
+	$(AR) rcu luazen.a $(OBJS)
 
-test:  luazen.so
+test:
 	$(LUAEXE) test/test_luazen.lua
 	
 clean:
-	rm -f *.o *.so *.dll
+	rm -f *.o *.a *.so *.dll *.so 
 
 .PHONY: clean test
 
