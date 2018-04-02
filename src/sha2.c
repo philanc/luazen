@@ -1,13 +1,11 @@
 // Copyright (c) 2018 Phil Leblanc  -- see LICENSE file
 // ---------------------------------------------------------------------
-// SHA2 - sha256, sha512
+// SHA2 - sha512
 
 // ---------------------------------------------------------------------
 /* 
 
-The sha512 code included here is public domain by Dan Bernstein
-
-This is directly extracted from the Monocypher library by Loup Vaillant.
+The sha512 code is taken from the Monocypher library by Loup Vaillant.
 http://loup-vaillant.fr/projects/monocypher/   
 The Monocypher license is included in file crypto_licenses.md
 
