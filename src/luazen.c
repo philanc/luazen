@@ -80,6 +80,10 @@ int ll_x25519_sign(lua_State *L);
 int ll_x25519_sign_open(lua_State *L);
 int ll_x25519_sha512(lua_State *L);
 
+int ll_gimli_encrypt(lua_State *L);
+int ll_gimli_decrypt(lua_State *L);
+int ll_gimli_hash(lua_State *L);
+
 //----------------------------------------------------------------------
 // lua library declaration
 //
@@ -110,7 +114,6 @@ static const struct luaL_Reg llib[] = {
 	{"blake2b_final", ll_blake2b_final},
 	//
 	{"argon2i", ll_argon2i},	
-	
 	//
 	//~ {"sha512", ll_sha512},
 	//~ {"sha256", ll_sha256},
@@ -121,6 +124,10 @@ static const struct luaL_Reg llib[] = {
 	{"x25519_sign", ll_x25519_sign},	
 	{"x25519_sign_open", ll_x25519_sign_open},		
 	{"x25519_sha512", ll_x25519_sha512},	
+	//
+	{"gimli_encrypt", ll_gimli_encrypt},
+	{"gimli_decrypt", ll_gimli_decrypt},
+	{"gimli_hash", ll_gimli_hash},
 	// 
 	{"rc4", ll_rc4},
 	{"rc4raw", ll_rc4raw},
