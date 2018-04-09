@@ -2,13 +2,13 @@
 // ---------------------------------------------------------------------
 // luazen crypto, encoding and compression library
 
-
-
-
 // ---------------------------------------------------------------------
 // lua binding
 
+#define LIBNAME luazen
 #define VERSION "luazen-0.10"
+
+#include <assert.h>
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -36,107 +36,112 @@
 #endif
 
 //----------------------------------------------------------------------
-// luazen function declarations
+// library table
 
-int ll_randombytes(lua_State *L);
+// max number of registered functions + 1
+#define LT_SIZE 100
 
-int ll_b64encode(lua_State *L);
-int ll_b64decode(lua_State *L);
+static struct luaL_Reg llib[LT_SIZE];
+static int llib_top = 0;
+static luaL_Reg regnull = {NULL, NULL};
 
-int ll_b58encode(lua_State *L);
-int ll_b58decode(lua_State *L);
+static int llib_append(const char *fname, lua_CFunction func) {
+	// append a function registration to the function table
+	luaL_Reg reg;
+	reg.name = fname;
+	reg.func = func;
+	llib[llib_top] = reg;
+	llib_top++;
+	assert(llib_top < LT_SIZE);
+	llib[llib_top] = regnull;
+}// llib_append
 
-int ll_blz(lua_State *L);
-int ll_unblz(lua_State *L);
+// APPEND macro: declare and register a Lua function in one place. eg:
+//    APPEND(lzf)  
+// is expanded to:
+//    int ll_lzf(lua_State *L);
+//    llib_append("lzf", ll_lzf);
+//
+// it assumes that
+//    - all library Lua C functions are named as 'll_xyz'
+//    - the Lua name for the ll_xyz C function is 'xyz'
 
-int ll_lzf(lua_State *L);
-int ll_unlzf(lua_State *L);
+#define APPEND(NAME) \
+	int ll_##NAME(lua_State *L); \
+	llib_append(#NAME, ll_ ## NAME);
 
-int ll_norx_encrypt(lua_State *L);
-int ll_norx_decrypt(lua_State *L);
-
-int ll_xchacha_encrypt(lua_State *L);
-int ll_xchacha_decrypt(lua_State *L);
-
-int ll_rc4(lua_State *L);
-int ll_rc4raw(lua_State *L);
-
-int ll_md5(lua_State *L);
-
-int ll_xor(lua_State *L);
-
-int ll_blake2b(lua_State *L);
-int ll_blake2b_init(lua_State *L);
-int ll_blake2b_update(lua_State *L);
-int ll_blake2b_final(lua_State *L);
-int ll_argon2i(lua_State *L);
-
-//~ int ll_sha512(lua_State *L);
-
-int ll_x25519_public_key(lua_State *L);
-int ll_x25519_shared_secret(lua_State *L);
-int ll_x25519_sign_public_key(lua_State *L);
-int ll_x25519_sign(lua_State *L);
-int ll_x25519_sign_open(lua_State *L);
-int ll_x25519_sha512(lua_State *L);
-
-int ll_gimli_encrypt(lua_State *L);
-int ll_gimli_decrypt(lua_State *L);
-int ll_gimli_hash(lua_State *L);
+static void llib_init() {
+	// luazen function declarations - comment APPEND lines to 
+	// remove functions from the luazen build
+	//
+	// from random.c
+	APPEND(randombytes)
+	//
+	// from base64.c
+	APPEND(b64encode)
+	APPEND(b64decode)
+	//
+	// from base58.c
+	APPEND(b58encode)
+	APPEND(b58decode)
+	//
+	// from blz.c
+	APPEND(blz)
+	APPEND(unblz)
+	//
+	// from lzf.c
+	APPEND(lzf)
+	APPEND(unlzf)
+	//
+	// from norx.c
+	APPEND(norx_encrypt)
+	APPEND(norx_decrypt)
+	//
+	// from chacha.c
+	APPEND(xchacha_encrypt)
+	APPEND(xchacha_decrypt)
+	//
+	// from rc4.c
+	APPEND(rc4)
+	APPEND(rc4raw)
+	//
+	// from md5.c
+	APPEND(md5)
+	//
+	// from xor.c
+	APPEND(xor)
+	//
+	// from blake2b.c
+	APPEND(blake2b)
+	APPEND(blake2b_init)
+	APPEND(blake2b_update)
+	APPEND(blake2b_final)
+	APPEND(argon2i)
+	//
+	// from sha2.c
+	//~ APPEND(sha512)
+	//
+	// from x25519.c
+	APPEND(x25519_public_key)
+	APPEND(x25519_shared_secret)
+	APPEND(x25519_sign_public_key)
+	APPEND(x25519_sign)
+	APPEND(x25519_sign_open)
+	APPEND(x25519_sha512)	
+	//
+	// from gimli.c
+	APPEND(gimli_encrypt)
+	APPEND(gimli_decrypt)
+	APPEND(gimli_hash)
+	
+	//
+} //llib_init()
 
 //----------------------------------------------------------------------
-// lua library declaration
-//
-static const struct luaL_Reg llib[] = {
-	//
-	{"randombytes", ll_randombytes},
-	{"xor", 		ll_xor},
-	{"b64encode",	ll_b64encode},
-	{"b64decode",	ll_b64decode},
-	{"b58encode",	ll_b58encode},
-	{"b58decode",	ll_b58decode},
-	// 
-	{"blz", ll_blz},
-	{"unblz", ll_unblz},
-	//
-	{"lzf", ll_lzf},
-	{"unlzf", ll_unlzf},
-	//
-	{"norx_encrypt", ll_norx_encrypt},
-	{"norx_decrypt", ll_norx_decrypt},
-	//
-	{"xchacha_encrypt", ll_xchacha_encrypt},
-	{"xchacha_decrypt", ll_xchacha_decrypt},
-	//
-	{"blake2b", ll_blake2b},
-	{"blake2b_init", ll_blake2b_init},
-	{"blake2b_update", ll_blake2b_update},
-	{"blake2b_final", ll_blake2b_final},
-	//
-	{"argon2i", ll_argon2i},	
-	//
-	//~ {"sha512", ll_sha512},
-	//~ {"sha256", ll_sha256},
-	//
-	{"x25519_public_key", ll_x25519_public_key},
-	{"x25519_shared_secret", ll_x25519_shared_secret},
-	{"x25519_sign_public_key", ll_x25519_sign_public_key},	
-	{"x25519_sign", ll_x25519_sign},	
-	{"x25519_sign_open", ll_x25519_sign_open},		
-	{"x25519_sha512", ll_x25519_sha512},	
-	//
-	{"gimli_encrypt", ll_gimli_encrypt},
-	{"gimli_decrypt", ll_gimli_decrypt},
-	{"gimli_hash", ll_gimli_hash},
-	// 
-	{"rc4", ll_rc4},
-	{"rc4raw", ll_rc4raw},
-	{"md5", ll_md5},
-	//
-	{NULL, NULL},
-};
+// library registration
 
 int luaopen_luazen (lua_State *L) {
+	llib_init(); // fill the library table
 	luaL_register (L, "luazen", llib);
     // 
     lua_pushliteral (L, "VERSION");
@@ -144,7 +149,3 @@ int luaopen_luazen (lua_State *L) {
 	lua_settable (L, -3);
 	return 1;
 }
-
-
-
-
