@@ -1,13 +1,15 @@
+// Copyright (c) 2018 Phil Leblanc  -- see LICENSE file
+// ---------------------------------------------------------------------
+
+//                 !!! WORK IN PROGRESS !!!
 
 /*
-
-180407
-
-authenticated encryption and hash based on a sponge construction
+Gimli - authenticated encryption and hash based on a sponge construction
 over the Gimli permutation. 
+- see Gimli links and authors list at https://gimli.cr.yp.to/
 - see https://en.wikipedia.org/wiki/Sponge_function
-- current encryption is in overwrite mode 
-  (ie. input replaces R instead of XOR)
+- (current encryption is in overwrite mode, ie. input 
+  replaces R instead of XOR)
 
 
 */
@@ -256,7 +258,6 @@ int gim_test()
 	gim_finalize(buf, k);
 	//~ gim_encrypt(c, mac, m, mlen, k, n);
 	return 0;
-	
 }
 
 // ---------------------------------------------------------------------
