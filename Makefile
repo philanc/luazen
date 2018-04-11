@@ -33,7 +33,7 @@ luazen.a: src/*.c
 	$(CC) -c $(CFLAGS) src/*.c
 	$(AR) rcu luazen.a $(OBJS)
 
-test:
+test: test/test_luazen.lua luazen.so
 	$(LUAEXE) test/test_luazen.lua
 	
 clean:
