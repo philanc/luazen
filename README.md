@@ -304,8 +304,9 @@ Luazen is distributed under the terms of the MIT License.
 The luazen library includes some code from various authors (see src/):
 - brieflz compression by Joergen Ibsen, BSD-like - see https://github.com/jibsen/brieflz
 - lzf functions by  Marc Alexander Lehmann (BSD, see src/lzf* headers)
-- blake2b, argon2i, ec/ed25519 and xchacha20-poly1305 from Loup Vaillant's Monocypher library. Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
+- blake2b, argon2i and xchacha20-poly1305 from Loup Vaillant's Monocypher library. Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
 - norx from the reference implementation by Samuel Neves and Philipp Jovanovic (public domain or CC0) - see https://norx.io/
+- x25519 (ec25519 DH secret exchange and ed25519 signature from tweetnacl, by Dan Bernstein, Tanja Lange et al. (public domain) - see http://nacl.cr.yp.to/  
 - base64 functions by Luiz Henrique de Figueiredo (public domain)
 - base58 functions by Luke Dashjr (MIT)
 - md5 by Cameron Rich (BSD)

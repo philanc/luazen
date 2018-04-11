@@ -31,6 +31,9 @@
  *   3. This notice may not be removed or altered from any source
  *      distribution.
  */
+ 
+ // stdint added for compiling with old mingw gcc (found on 4.8.1)
+  #include <stdint.h>
 
 //-- content of original file brieflz.h
 
