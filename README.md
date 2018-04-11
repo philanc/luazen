@@ -27,14 +27,14 @@ August-2017
 
 ### Functions
 
-The compression functions are based on the tiny **LZF** library (see references in the readme). It is not as efficient as gzip, but much smaller and very fast.
+Compression functions include:
+- The tiny **LZF** library by  Marc Alexander Lehmann. It is not as efficient as gzip, but much smaller and very fast.
+- The amazing **BriefLZ** algorithm by Joergen Ibsen. It is a bit slower than LZF, but the code is even smaller and achieve a much better compression ratio (better than gzip on some workloads).  They could completely replace LZF in future versions of luazen.
 
-Compression functions based on the amazing **BriefLZ** algorithm by Joergen Ibsen are also included. They are half as fast as LZF, but even smaller and with a much better compression ratio (better than gzip).  They could completely replace LZF in future versions of luazen.
-
-Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used)
+Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used).
 
 Cryptographic functions include:
-- **(X)Chacha20-Poly1305 authenticated encryption with additional data (AEAD)
+- **(X)Chacha20-Poly1305** authenticated encryption with additional data (AEAD)
 - **Norx** authenticated encryption with additional data (AEAD) - this is the default 64-4-1 variant (256-bit key and nonce, 4 rounds)
 - **Blake2b**, **Sha512** cryptographic hash functions,
 - **Argon2i**, a modern key derivation function based on Blake2b. Like 
