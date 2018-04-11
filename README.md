@@ -29,7 +29,7 @@ August-2017
 
 Compression functions include:
 - The tiny **LZF** library by  Marc Alexander Lehmann. It is not as efficient as gzip, but much smaller and very fast.
-- The amazing **BriefLZ** algorithm by Joergen Ibsen. It is a bit slower than LZF, but the code is even smaller and achieve a much better compression ratio (better than gzip on some workloads).  They could completely replace LZF in future versions of luazen.
+- The amazing **BriefLZ** algorithm by Joergen Ibsen. It is a bit slower than LZF, but the code is even smaller and it achieves a much better compression ratio (better than gzip on some workloads).  It could completely replace LZF in future versions of luazen.
 
 Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used).
 
