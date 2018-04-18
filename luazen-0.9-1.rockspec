@@ -2,7 +2,7 @@ package = "luazen"
 version = "0.9-1"
 source = {
    url = "git://github.com/philanc/luazen",
-   branch = "v0.5",
+    branch = "v0.9",
 }
 description = {
    summary = "Simple compression, encoding and cryptographic functions.",
