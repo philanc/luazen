@@ -4,7 +4,7 @@
 Luazen is a small library with various encoding, compression and 
 cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces (except for blake2b hash function)
 
-**Note:  The master branch is quite unstable at the moment. **
+**Note:  The master branch is quite unstable at the moment.**
 
 **The last stable version is v0.9 at
 https://github.com/philanc/luazen/tree/v0.9  or can be downloaded at
