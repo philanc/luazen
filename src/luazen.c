@@ -129,10 +129,7 @@ static void llib_init() {
 	APPEND(x25519_sign_open)
 	APPEND(x25519_sha512)	
 	//
-	// from gimli.c
-	APPEND(gimli_encrypt)
-	APPEND(gimli_decrypt)
-	APPEND(gimli_hash)
+
 	
 	//
 } //llib_init()

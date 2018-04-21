@@ -17,9 +17,9 @@ https://github.com/philanc/luazen/releases/tag/v0.9**
 
 April-2018:  _Work in progress!!_
 
-* Adding Gimli-based authenticated encryption and hash constructions (Gimli is a permutation proposed in 2017 by Dan Bernstein et al. See https://gimli.cr.yp.to/). Warning: the Gimli functions are _very_ preliminary!
+* The Gimli functions which briefly appeared here have been removed.
 
-March-2018: v0.10 - some significant changes:
+March-2018: moving toward v0.10 - some significant changes:
 
 * The code has been reorganized to make it easier to build variants of the library with an "a la carte" selection of modules
 
