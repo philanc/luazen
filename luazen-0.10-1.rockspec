@@ -1,5 +1,5 @@
 package = "luazen"
-version = "v0.10"
+version = "0.10-1"
 source = {
    url = "git://github.com/philanc/luazen",
     branch = "v0.10",
