@@ -129,8 +129,11 @@ static void llib_init() {
 	APPEND(x25519_sign_open)
 	APPEND(x25519_sha512)	
 	//
+	// from morus.c
+	APPEND(morus_encrypt)
+	APPEND(morus_decrypt)
+	//
 
-	
 	//
 } //llib_init()
 

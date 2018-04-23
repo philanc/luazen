@@ -18,7 +18,7 @@ LDFLAGS= -fPIC
 OBJS= \
 	random.o base64.o base58.o blz.o  \
 	norx.o md5.o rc4.o xor.o lzf.o  blake2b.o  \
-	sha2.o x25519.o chacha.o 
+	sha2.o x25519.o chacha.o morus.o
 
 all: luazen.so
 

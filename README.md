@@ -15,7 +15,9 @@ https://github.com/philanc/luazen/releases/tag/v0.9**
 
 ### Recent changes
 
-April-2018:  _Work in progress!!_
+April-2018:  
+
+* Added *Morus*, a finalist (round 4) in the CAESAR competition for authenticated encryption.
 
 * The Gimli functions which briefly appeared here have been removed.
 
@@ -45,7 +47,8 @@ Compression functions include:
 Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used).
 
 Cryptographic functions include:
-- **(X)Chacha20-Poly1305** authenticated encryption with additional data (AEAD)
+- **Morus**, a fast authenticated encryption algorithm with associated data (AEAD). Morus is a finalist (round 4) in the [CAESAR](http://competitions.cr.yp.to/caesar-submissions.html) competition.
+- **(X)Chacha20-Poly1305** authenticated encryption with additional data (AEAD). This is the Morus-1280 variant (160-byte state, 256 and 128-bit key, 128-bit nonce, optimized for 64-bit architectures).
 - **Norx** authenticated encryption with additional data (AEAD) - this is the default 64-4-1 variant (256-bit key and nonce, 4 rounds)
 - **Blake2b**, **Sha512** cryptographic hash functions,
 - **Argon2i**, a modern key derivation function based on Blake2b. Like 
@@ -114,6 +117,31 @@ xor(str, key)
 	the returned string is always the same length as str.
 	if key is longer than str, extra key bytes are ignored.
 	if key is shorter than str, it is repeated as much as necessary.
+
+--- Authenticated encryption functions (Morus encryption algorithm)
+
+morus_encrypt(encrypt(k, n, m [, ad [, ninc]]) return c
+	k: key string (16 or 32 bytes)
+	n: nonce string (16 bytes)
+	m: message (plain text) string 
+	ad: prefix additional data (AD) (not encrypted, prepended to the 
+	     encrypted message). default to the empty string
+	ninc: optional nonce increment (useful when encrypting a long message
+	     as a sequence of block). The same parameter n can be used for 
+	     the sequence. ninc is added to n for each block, so the actual
+	     nonce used for each block encryption is distinct.
+	     ninc defaults to 0 (the nonce n is used as-is)
+	return encrypted text string c with ad prefix (c includes 
+	the 16-byte MAC, so #c = #ad + #m + 16)
+
+morus_decrypt(k, n, c [, adln [, ninc]]) 
+	    return m | (nil, msg)
+	k: key string (16 or 32 bytes)
+	n: nonce string (16 bytes)
+	c: encrypted message string 
+	adln: length of the AD prefix (default to 0)
+	ninc: optional nonce increment (see above. defaults to 0)
+	return decrypted message m or (nil, errmsg) if MAC is not valid
 
 --- Authenticated encryption functions (Norx encryption algorithm)
 
