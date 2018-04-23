@@ -4,18 +4,14 @@
 Luazen is a small library with various encoding, compression and 
 cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces (except for blake2b hash function)
 
-**Note:  The master branch is quite unstable at the moment.**
-
-**The last stable version is v0.9 at
-https://github.com/philanc/luazen/tree/v0.9  or can be downloaded at
-https://github.com/philanc/luazen/releases/tag/v0.9**
-
-**The last rockspec at the moment also installs the stable version v0.9**
-
 
 ### Recent changes
 
 April-2018:  
+
+* The current version is now v0.10. Please note that the library has undergone significant modifications since version 0.9, both implementation and API. Moving toward a good and hopefully stable API before tagging the v1.0.
+
+    - The former version v0.9 is available [here](https://github.com/philanc/luazen/tree/v0.9) or can be installed with  	luazen-0.9-1.rockspec.
 
 * Added *Morus*, a finalist (round 4) in the CAESAR competition for authenticated encryption.
 
