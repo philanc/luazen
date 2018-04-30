@@ -15,6 +15,13 @@
 // this code is a slightly modified version of the C reference code v2
 // submitted to CAESAR (see NTU link above)
 //
+//---
+//
+// NOTE: I have added an experimental hash / XOF function based on the 
+// Morus permutation. It is NOT part of the Morus submission and has NOT 
+// been analyzed / reviewed. The design is certainly not final.  
+// => DON'T USE THE HASH FUNCTION for any serious purpose.
+//
 // ---------------------------------------------------------------------
 
 
@@ -577,4 +584,61 @@ int ll_morus_decrypt(lua_State *L) {
 	return 1;
 	
 } // ll_morus_decrypt()
+
+int ll_morus_hash(lua_State *L) {
+	// !! EXPERIMENTAL !! 
+	// Lua API: hash(m, [diglen [, k]])  return dig
+	//  m: message string to hash
+	//  diglen: optional digest length in bytes (defaults to 32)
+	//  k: optional key string (32 bytes)
+	//  return digest string dig
+	//  (#dig == diglen)
+	int i, r;
+	size_t mln, kln, n;
+	uint64_t *pu64;
+	const char *m = luaL_checklstring(L,1,&mln);	
+	size_t diglen = luaL_optinteger(L, 2, 32);	
+	const char *k = luaL_optlstring(L,3,"",&kln);
+	//if (kln != 32) LERR("bad key size");
+	
+	char *p; 
+	char *dig = lua_newuserdata(L, diglen);
+	uint8_t iv[16] = {0};  
+	uint8_t kb[32] = {0};  
+	uint8_t blk[32] = {0}; 
+	uint64_t st[5][4];
+	
+	// initialize the state
+	if (kln > 32) kln = 32;
+	if (kln > 0) memcpy(kb, k, kln);
+	pu64 = (uint64_t *)iv;
+	*pu64 = diglen;
+	morus_initialization(kb, 32, iv, st);
+	// absorb m
+	while (mln >= 32) {
+		morus_stateupdate((uint64_t*)m, st);
+		m += 32;
+		mln -= 32; 
+	}
+	// absorb last partial block (if any) and pad
+	memcpy(blk, m, mln);
+	blk[mln] = 0x01;
+	blk[31] ^= 0x80;
+	morus_stateupdate((uint64_t*)blk, st);
+	// mix state
+	memset(blk, 0, 32);
+	for (i=0; i<16; i++) { morus_stateupdate((uint64_t*)blk, st); }
+	// squeeze digest
+	p = dig;
+	n = diglen;
+	while (n > 32) {
+		memcpy(p, (char *)st[0], 32);
+		p += 32; 
+		n -= 32;
+		morus_stateupdate((uint64_t*)blk, st);
+	}
+	memcpy(p, (char *)st[0], n);
+	lua_pushlstring (L, dig, diglen); 
+	return 1;
+} // ll_morus_hash()
 
