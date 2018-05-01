@@ -43,7 +43,7 @@ Compression functions include:
 Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used).
 
 Cryptographic functions include:
-- **Morus**, a fast authenticated encryption algorithm with associated data (AEAD). Morus is a finalist (round 4) in the [CAESAR](http://competitions.cr.yp.to/caesar-submissions.html) competition. This is the Morus-1280 variant (160-byte state, 256 and 128-bit key, 128-bit nonce, optimized for 64-bit architectures).
+- **Morus**, a fast authenticated encryption algorithm with associated data (AEAD). Morus is a finalist (round 4) in the [CAESAR](http://competitions.cr.yp.to/caesar-submissions.html) competition. This is the Morus-1280 variant (160-byte state, 256 and 128-bit key, 128-bit nonce, optimized for 64-bit architectures). Its structure also makes it a very good fit for a [pure Lua implmentation](https://github.com/philanc/plc). 
 - **(X)Chacha20-Poly1305** authenticated encryption with additional data (AEAD). 
 - **Norx** authenticated encryption with additional data (AEAD) - this is the default 64-4-1 variant (256-bit key and nonce, 4 rounds)
 - **Blake2b**, **Sha512** cryptographic hash functions,
