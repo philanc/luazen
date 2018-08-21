@@ -266,26 +266,6 @@ x25519_sha512(s) => hash
 
 --- Blake2b cryptographic hash
 
-blake2b_init([digest_size [, key]]) => ctx
-	initialize and return a blake2b context object
-	digest_size is the optional length of the expected digest. If provided,
-	it must be an integer between 1 and 64. It defaults to 64.
-	key is an optional key allowing to use blake2b as a MAC function.
-	If provided, key is a string with a length that must be between 
-	1 and 64. The default is no key.
-	ctx is a pointer to the blake2b context as a light userdata.
-
-blake2b_update(ctx, text_fragment)
-	update the hash with a new text fragment
-	ctx is a pointer to a blake2b context as a light userdata.
-
-blake2b_final(ctx) => digest
-	return the final value of the hash
-	ctx is a pointer to a blake2b context as a light userdata.
-	The digest is returned as a string. The length of the digest
-	has been defined at the context creation (see blake2b_init()).
-	It defaults to 64.
-
 blake2b(text [, digest_size [, key]]) => digest
 	compute the hash of string 'text'.
 	'digest_size' is the optional length of the expected digest. If
@@ -294,6 +274,7 @@ blake2b(text [, digest_size [, key]]) => digest
 	If provided, key length must be between 1 and 64. 
 	The default is no key.
 	Returns the hash as a 'digest_size'-long string
+
 
 --- Argon2i password derivation 
 
