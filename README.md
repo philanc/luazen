@@ -122,7 +122,8 @@ xor(str, key)
 	return the byte-to-byte xor of string str with string key.
 	the returned string is always the same length as str.
 	if key is longer than str, extra key bytes are ignored.
-	if key is shorter than str, it is repeated as much as necessary.
+	if key is shorter than str, it is repeated as many times 
+	as necessary.
 
 --- Authenticated encryption functions (Morus encryption algorithm)
 
