@@ -68,7 +68,7 @@ print("------------------------------------------------------------")
 print(_VERSION, lz.VERSION )
 print("------------------------------------------------------------")
 
-assert(lz.VERSION == "luazen-0.10")
+assert(lz.VERSION == "luazen-0.11")
 
 ------------------------------------------------------------------------
 if lz.lzf then do
@@ -298,47 +298,22 @@ if lz.blake2b then do
 	local e, t, dig, ctx, dig51, dig52, dig53, dig54, dig55
 	t = "The quick brown fox jumps over the lazy dog"
 	e = hextos(
-		"A8ADD4BDDDFD93E4877D2746E62817B116364A1FA7BC148D95090BC7333B3673" ..
-		"F82401CF7AA2E4CB1ECD90296E3F14CB5413F8ED77BE73045B13914CDCD6A918")
+	"A8ADD4BDDDFD93E4877D2746E62817B116364A1FA7BC148D95090BC7333B3673"
+	.."F82401CF7AA2E4CB1ECD90296E3F14CB5413F8ED77BE73045B13914CDCD6A918"
+	)
 		
-	-- test convenience function
+	-- test default
 	dig = lz.blake2b(t)
 	assert(e == dig)
 
-	-- test chunked interface
-	ctx = lz.blake2b_init()
-	lz.blake2b_update(ctx, "The q")
-	lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
-	dig = lz.blake2b_final(ctx)
+	dig = lz.blake2b(t, 64, "")
 	assert(e == dig)
+	
+	-- need test vectors for shorter, and keyed digests 
+	
+	dig = lz.blake2b(t, 64, "aaa")
+	assert(e ~= dig)
 
-	-- test shorter digests
-	ctx = lz.blake2b_init(5)
-	lz.blake2b_update(ctx, "The q")
-	lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
-	dig51 = lz.blake2b_final(ctx)
-	ctx = lz.blake2b_init(5)
-	lz.blake2b_update(ctx, "The quick b")
-	lz.blake2b_update(ctx, "rown fox jumps over the lazy dog")
-	dig52 = lz.blake2b_final(ctx)
-	assert(#dig51 == 5 and dig51 == dig52)
-
-	-- same, with a key
-	ctx = lz.blake2b_init(5, "somekey")
-	lz.blake2b_update(ctx, "The q")
-	lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
-	dig53 = lz.blake2b_final(ctx)
-	ctx = lz.blake2b_init(5, "somekey")
-	lz.blake2b_update(ctx, "The quick b")
-	lz.blake2b_update(ctx, "rown fox jumps over the lazy dog")
-	dig54 = lz.blake2b_final(ctx)
-	assert(#dig53 == 5 and dig53 == dig54)
-
-	ctx = lz.blake2b_init(5, ("\0"):rep(0)) -- is it same as no key??
-	lz.blake2b_update(ctx, "The q")
-	lz.blake2b_update(ctx, "uick brown fox jumps over the lazy dog")
-	dig55 = lz.blake2b_final(ctx)
-	assert(dig51==dig55)
 	end--do
 end
 
@@ -400,47 +375,47 @@ if lz.morus_encrypt then do
 	k = xts'00000000000000000000000000000000'
 	iv = xts'00000000000000000000000000000000'
 	m = ""; ad = ""
-	e = encrypt(k, iv, m, ad)
+	e = encrypt(k, iv, m, 0, ad)
 	assert(#e == #ad + #m + 16)
 	assert(e == xts"5bd2cba68ea7e72f6b3d0c155f39f962")
-	m2, err = decrypt(k, iv, e, #ad)
+	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
 	m = "\x01"; ad = ""
-	e = encrypt(k, iv, m, ad)
+	e = encrypt(k, iv, m, 0, ad)
 	assert(e == xts"ba ec1942a315a84695432a1255e6197878")
-	m2, err = decrypt(k, iv, e, #ad)
+	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
 	m = ""; ad = "\x01"
-	e = encrypt(k, iv, m, ad)
+	e = encrypt(k, iv, m, 0, ad)
 --~ 	print(stx(e))
 	assert(e == xts"01 590caa148b848d7614315685377a0d42") --ad,tag
-	m2, err = decrypt(k, iv, e, #ad)
+	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
 	k = xts'01000000000000000000000000000000'
 	m = "\x00"; ad = "\x00"
-	e = encrypt(k, iv, m, ad)
+	e = encrypt(k, iv, m, 0, ad)
 	assert(#e == #ad + #m + 16)
 	assert(e == xts"00 cf f9f0a331e3de3293b9dd2e65ba820009")--ad,c,tag
-	m2, err = decrypt(k, iv, e, #ad)
+	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
 	k =  xts'00000000000000000000000000000000'
 	iv = xts'01000000000000000000000000000000'
 	m = "\x00"; ad = "\x00"
-	e = encrypt(k, iv, m, ad)
+	e = encrypt(k, iv, m, 0, ad)
 	assert(#e == #ad + #m + 16)
 	assert(e == xts"00 09 c957f9ca617876b5205155cd936eb9bb")--ad,c,tag
-	m2, err = decrypt(k, iv, e, #ad)
+	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
 	k =  xts'000102030405060708090a0b0c0d0e0f'
 	iv = xts'000306090c0f1215181b1e2124272a2d'
 	m = xts'01010101010101010101010101010101'
 	ad = xts'01010101010101010101010101010101'
-	e = encrypt(k, iv, m, ad)
+	e = encrypt(k, iv, m, 0, ad)
 --~ 	print(stx(e))
 	assert(#e == #ad + #m + 16)
 	assert(e == xts[[
@@ -448,7 +423,7 @@ if lz.morus_encrypt then do
 		b64ee39fc045475e97b41bd08277b4cb
 		e989740eb075f75bd57a43a250f53765
 		]])--ad,c,tag
-	m2, err = decrypt(k, iv, e, #ad)
+	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
 	k =  xts'000102030405060708090a0b0c0d0e0f'
@@ -460,14 +435,14 @@ if lz.morus_encrypt then do
 	ad = xts[[
 	00050a0f14191e23282d32373c41464b50555a5f64696e73787d82878c91969b
 	a0a5aaafb4b9be ]]
-	e = encrypt(k, iv, m, ad)
+	e = encrypt(k, iv, m, 0, ad)
 --~ 	print(stx(e))
 	assert(#e == #ad + #m + 16)
 	assert(e == ad .. xts[[
 	0861b4924850e8a945e60ec08a1b04f3c77dd2b05ccb05c05c567be8cdfd4582
 	28a390c4117b66d71fade7f89902e4d500389a275cb0ce5685f3a21beb6d6519
 	f465b96f1eaf9eeea2   5e43f30fa0adb318083a795fc23df52c ]])
-	m2, err = decrypt(k, iv, e, #ad)
+	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
 	-- 32-byte key -- 1280_256 -----------------------------------------
@@ -476,11 +451,11 @@ if lz.morus_encrypt then do
 	iv = xts'000306090c0f1215181b1e2124272a2d'
 	m = xts[[ 01010101010101010101010101010101  ]]
 	ad = xts[[ 01010101010101010101010101010101 ]]
-	e = encrypt(k, iv, m, ad)
+	e = encrypt(k, iv, m, 0, ad)
 	assert(#e == #ad + #m + 16)
 	assert(e == ad .. xts[[ 
 	aecb6f5991a11746831740e4d45b6c26  c3107488470f05e6828472ac0264045d ]])
-	m2, err = decrypt(k, iv, e, #ad)
+	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
 	k = xts'000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
@@ -492,13 +467,13 @@ if lz.morus_encrypt then do
 	ad = xts[[
 	00050a0f14191e23282d32373c41464b50555a5f64696e73787d82878c91969b
 	a0a5aaafb4b9be ]]
-	e = encrypt(k, iv, m, ad)
+	e = encrypt(k, iv, m, 0, ad)
 	assert(#e == #ad + #m + 16)
 	assert(e == ad .. xts[[ 
 	3e440c73993c55074d4749d6cd8ceddebb95ea8d2387062237349123c75959bf
 	a3ff44b18395a0bfc834d5f2de24845bffdba576afab00e798ad5a1666892883
 	73f84ead85eb77aa2d      f3166bbf6f94a1932b4b2471e8437206	]])
-	m2, err = decrypt(k, iv, e, #ad)
+	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
 	end--do

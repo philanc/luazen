@@ -6,7 +6,7 @@
 // lua binding
 
 #define LIBNAME luazen
-#define VERSION "luazen-0.10"
+#define VERSION "luazen-0.11"
 
 #include <assert.h>
 
@@ -113,9 +113,6 @@ static void llib_init() {
 	//
 	// from blake2b.c
 	APPEND(blake2b)
-	APPEND(blake2b_init)
-	APPEND(blake2b_update)
-	APPEND(blake2b_final)
 	APPEND(argon2i)
 	//
 	// from sha2.c

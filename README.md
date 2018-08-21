@@ -2,14 +2,19 @@
 # luazen
 
 Luazen is a small library with various encoding, compression and 
-cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces (except for blake2b hash function)
+cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces.
 
 
 ### Recent changes
 
 August-2018
 
-* Morus API: switched parameters 'ad' and 'ninc' (homogenized API with Norx and XChacha
+* Version 0.11 (hopefully the last API modification before v1.0).
+
+    - Blake2b API: removed the chunked interface ('init', 
+'update' and 'final' functions are combined in one 'blake2b' function).
+
+    - Morus API: switched parameters 'ad' and 'ninc' (homogenized API with Norx and XChacha).
 
 
 April-2018:  
@@ -281,11 +286,14 @@ blake2b_final(ctx) => digest
 	has been defined at the context creation (see blake2b_init()).
 	It defaults to 64.
 
-blake2b(text) => digest
-	compute the hash of a string. 
-	Returns a 64-byte digest.
-	This is a convenience function which combines the init(), 
-	update() and final() functions above.
+blake2b(text [, digest_size [, key]]) => digest
+	compute the hash of string 'text'.
+	'digest_size' is the optional length of the expected digest. If
+	provided, it must be an integer between 1 and 64. It defaults to 64.
+	'key' is an optional key allowing to use blake2b as a MAC function.
+	If provided, key length must be between 1 and 64. 
+	The default is no key.
+	Returns the hash as a 'digest_size'-long string
 
 --- Argon2i password derivation 
 
