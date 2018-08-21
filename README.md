@@ -7,6 +7,11 @@ cryptographic functions. All the functions work on strings, there is no stream o
 
 ### Recent changes
 
+August-2018
+
+* Morus API: switched parameters 'ad' and 'ninc' (homogenized API with Norx and XChacha
+
+
 April-2018:  
 
 * The current version is now v0.10. Please note that the library has undergone significant modifications since version 0.9, both implementation and API. Moving toward a good and hopefully stable API before tagging the v1.0.
