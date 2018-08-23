@@ -214,10 +214,10 @@ x25519_public_key(sk) => pk
 
 keypair() has been removed to eliminate hard dependency to 
 the included randombyte() function. It can be replaced with:
-		function keypair()
-			local sk = luazen.randombytes(32)
-			return luazen.ec25519_public_key(sk), sk
-		end
+	function keypair()
+		local sk = luazen.randombytes(32)
+		return luazen.ec25519_public_key(sk), sk
+	end
 
 x25519_shared_secret(sk, pk) => ss
 	DH key exchange. Return a common shared secret ss.
@@ -240,10 +240,10 @@ x25519_sign_public_key(sk) => pk
 
 sign_keypair() has been removed to eliminate hard dependency to 
 the included randombyte() function. It can be replaced with:
-		function keypair()
-			local sk = luazen.randombytes(32)
-			return luazen.ed25519_public_key(sk), sk
-		end
+	function keypair()
+		local sk = luazen.randombytes(32)
+		return luazen.ed25519_public_key(sk), sk
+	end
 
 x25519_sign(sk, pk, text) => signed text
 	sign a text with a secret key
