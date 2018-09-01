@@ -1,7 +1,7 @@
 
 # luazen
 
-Luazen is a small library with various encoding, compression and 
+[Luazen](https://github.com/philanc/luazen) is a small library with various encoding, compression and 
 cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces.
 
 
