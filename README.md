@@ -142,7 +142,7 @@ morus_encrypt(encrypt(k, n, m [, ninc [, ad]]) return c
 	the 16-byte MAC, so #c = #ad + #m + 16)
 
 morus_decrypt(k, n, c [, ninc [, adln]]) 
-	    return m | (nil, msg)
+	return m | (nil, msg)
 	k: key string (16 or 32 bytes)
 	n: nonce string (16 bytes)
 	c: encrypted message string 
