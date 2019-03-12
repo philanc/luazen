@@ -17,10 +17,10 @@
 //
 //---
 //
-// NOTE: I have added an experimental hash / XOF function based on the 
+// NOTE: I have added an experimental XOF function based on the 
 // Morus permutation. It is NOT part of the Morus submission and has NOT 
 // been analyzed / reviewed. The design is certainly not final.  
-// => DON'T USE THE HASH FUNCTION for any serious purpose.
+// => DON'T USE THE XOF FUNCTION for any serious purpose.
 //
 // ---------------------------------------------------------------------
 
@@ -586,27 +586,26 @@ int ll_morus_decrypt(lua_State *L) {
 	
 } // ll_morus_decrypt()
 
-int ll_morus_hash(lua_State *L) {
+int ll_morus_xof(lua_State *L) {
 	//
 	// !! EXPERIMENTAL - NOT DESIGNED BY THE MORUS AUTHORS !! 
 	// !! => DON'T USE IT FOR ANYTHING !! 
 	//
-	// Lua API: hash(m, [diglen [, k]])  return dig
-	//  m: message string to hash
-	//  diglen: optional digest length in bytes (defaults to 32)
+	// Lua API: xof(m, [outlen [, k]])  return out
+	//  m: message string 
+	//  outlen: optional output length in bytes (defaults to 32)
 	//  k: optional key string (32 bytes)
-	//  return digest string dig
-	//  (#dig == diglen)
+	//  return output string out (#out == outlen)
 	int i, r;
 	size_t mln, kln, n;
 	uint64_t *pu64;
 	const char *m = luaL_checklstring(L,1,&mln);	
-	size_t diglen = luaL_optinteger(L, 2, 32);	
+	size_t outlen = luaL_optinteger(L, 2, 32);	
 	const char *k = luaL_optlstring(L,3,"",&kln);
 	//if (kln != 32) LERR("bad key size");
 	
 	char *p; 
-	char *dig = lua_newuserdata(L, diglen);
+	char *out = lua_newuserdata(L, outlen);
 	uint8_t iv[16] = {0};  
 	uint8_t kb[32] = {0};  
 	uint8_t blk[32] = {0}; 
@@ -616,7 +615,7 @@ int ll_morus_hash(lua_State *L) {
 	if (kln > 32) kln = 32;
 	if (kln > 0) memcpy(kb, k, kln);
 	pu64 = (uint64_t *)iv;
-	*pu64 = diglen;
+	*pu64 = outlen;
 	morus_initialization(kb, 32, iv, st);
 	// absorb m
 	while (mln >= 32) {
@@ -632,9 +631,9 @@ int ll_morus_hash(lua_State *L) {
 	// mix state
 	memset(blk, 0, 32);
 	for (i=0; i<16; i++) { morus_stateupdate((uint64_t*)blk, st); }
-	// squeeze digest
-	p = dig;
-	n = diglen;
+	// squeeze output
+	p = out;
+	n = outlen;
 	while (n > 32) {
 		memcpy(p, (char *)st[0], 32);
 		p += 32; 
@@ -642,7 +641,7 @@ int ll_morus_hash(lua_State *L) {
 		morus_stateupdate((uint64_t*)blk, st);
 	}
 	memcpy(p, (char *)st[0], n);
-	lua_pushlstring (L, dig, diglen); 
+	lua_pushlstring (L, out, outlen); 
 	return 1;
-} // ll_morus_hash()
+} // ll_morus_xof()
 

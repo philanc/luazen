@@ -129,7 +129,7 @@ static void llib_init() {
 	// from morus.c
 	APPEND(morus_encrypt)
 	APPEND(morus_decrypt)
-	APPEND(morus_hash)
+	APPEND(morus_xof)
 	//
 
 	//
