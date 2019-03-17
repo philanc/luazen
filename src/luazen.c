@@ -131,6 +131,10 @@ static void llib_init() {
 	APPEND(morus_decrypt)
 	APPEND(morus_xof)
 	//
+	// from ascon.c
+	APPEND(ascon_encrypt)
+	APPEND(ascon_decrypt)
+	//
 
 	//
 } //llib_init()
