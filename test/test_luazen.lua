@@ -478,6 +478,85 @@ if lz.morus_encrypt then do
 	--
 	end--do
 end--morus
+
+------------------------------------------------------------------------
+if lz.ascon_encrypt then do
+	print("testing ascon...")
+	local k, iv, m, c, e, ee, m2, err, tag, ad
+	local encrypt, decrypt = lz.ascon_encrypt, lz.ascon_decrypt
+	--
+	-- test vector at
+	-- http://repositorio.unicamp.br/jspui/bitstream/REPOSIP\
+	--   /332624/1/Santos_LuanCardosoDos_M.pdf
+	--
+	-- 16-byte key -------------------------------------------------
+	k  = xts'000102030405060708090a0b0c0d0e0f'
+	n  = xts'202122232425262728292a2b2c2d2e2f'
+	mt = {}
+	for i = 0, 0x7f do mt[i+1] = char(i) end
+	m = table.concat(mt)
+	ad = m
+	e = encrypt(k, n, m, 0, ad)
+	ee = ad .. xts[[
+		73 CC C0 A7 24 22 56 91 0E C8 B0 32 E4 3E D4 EF
+		17 8D 8B 2D A6 BC 73 71 20 41 B4 2D DD D2 AC 5A
+		75 EC 46 46 26 5D 50 30 A7 CC E7 A7 58 51 CF 1E
+		10 9A A4 AB B5 40 D7 45 0B 76 DB 6B 23 4F 15 C6
+		0B 24 D7 85 E9 21 CD 4E 3A DF BD A7 53 2C EE 82
+		9B 34 E4 B1 1A D9 71 A8 C7 00 2D D6 77 20 D0 2A
+		C5 F6 CD 95 D1 8E 41 1D A9 AA AD 3E 06 A7 B7 0F
+		62 4E 20 25 AF 62 3B B4 A3 B6 24 78 5F 67 03 DC
+		86 EF 47 86 AD CE 94 BB 57 71 2D FA 87 40 6C AB
+		]]
+	assert(#e == #ad + #m + 16)
+	assert(e == ee)
+	m2, err = decrypt(k, n, e, 0, #ad)
+	assert(m2 == m)
+	--
+	-- cf test vectors for ascon128a in 
+	-- https://cryptography.gmu.edu/athena/sources/\
+	--   2017_04_15/ASCON_GMU_v2.0.zip
+	-- in dir KAT/v2
+	--
+	-- msg 2
+	k = xts'55565758595A5B5C5D5E5F6061626364'
+	n = xts'B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF'
+	m = ""
+	ad = ""
+	e = encrypt(k, n, m, 0, ad)
+	assert(e == xts'FF237BC7A9EBE006575DCD86F67C4D5D')
+	--
+	-- msg 6
+	k = xts'55565758595A5B5C5D5E5F6061626364'
+	n = xts'B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF'
+	m = xts'FF'
+	ad = ""
+	e = encrypt(k, n, m, 0, ad)
+	assert(e == xts'0B B7EB96AE355D441E94A858703B281EE3')
+	--
+	-- msg 25 
+	k = xts'0B96962CFE820035C1E7A8161CB64A90'
+	n = xts'EEA618E76CD70BE27BE4486041FEDE49'
+	m = xts[[
+	CDE06A71DCB7F828E66D79AA75E08B844A3810FF053104682C0BDB6D18508B08
+	9EA11406F61926ECC0C39A5B8AF8E7C8D3751E59500308B2D6DE484EAE29E24E
+	8B9956B16D66FCFF543EF4C8087C1BCB0AFE6F0EA175
+	]]
+	ad = xts[[
+	2E5AB65C5F73DF38A2FF9262BFF3EC7EE48EA3779D89BDC586AF3541E830766D
+	313D7CE2E1F0898571F15C6C3D57	
+	]]
+	e = encrypt(k, n, m, 0, ad)
+	assert(e == ad .. xts[[
+	74F5C4F964F60BEC67D43605B23C3D30A684AF02007B21A3EDB6CF523EB30144
+	56EB0B66A79161BF65A46B696A7D3E91C97DA189A4740F7267B055E61060A1C5
+	234DECEA82A52ABDFA32CDBE74792D4DD465D60220F7
+	65911960412D6451FF106290B7E555FF	
+	]] )
+	--
+	end--do
+end--ascon
+
 ------------------------------------------------------------------------
 if lz.argon2i then do
 	print("testing argon kdf...")
