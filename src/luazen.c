@@ -71,6 +71,9 @@ static int llib_append(const char *fname, lua_CFunction func) {
 	llib_append(#NAME, ll_ ## NAME);
 
 static void llib_init() {
+	// must reinitialize llib_top each time llib_init is called
+	llib_top = 0;
+	
 	// luazen function declarations - comment APPEND lines to 
 	// remove functions from the luazen build
 	//
