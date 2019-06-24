@@ -12,11 +12,12 @@ LUAEXE= $(LUADIR)/bin/lua
 CC= gcc
 AR= ar
 
-CFLAGS= -Os -fPIC $(LUAINC) 
+CFLAGS= -Os -fPIC $(LUAINC)  -D_7ZIP_ST
 LDFLAGS= -fPIC 
 
 OBJS= \
 	random.o base64.o base58.o blz.o  \
+	lzmaa.o  \
 	norx.o md5.o rc4.o xor.o lzf.o  blake2b.o  \
 	sha2.o x25519.o chacha.o morus.o  ascon.o 
 

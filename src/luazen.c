@@ -96,6 +96,10 @@ static void llib_init() {
 	APPEND(lzf)
 	APPEND(unlzf)
 	//
+	// from lzmaa.c
+	APPEND(lzma)
+	APPEND(unlzma)
+	//
 	// from norx.c
 	APPEND(norx_encrypt)
 	APPEND(norx_decrypt)
