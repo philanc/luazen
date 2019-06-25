@@ -7,6 +7,14 @@ cryptographic functions. All the functions work on strings, there is no stream o
 
 ### Recent changes
 
+June-2019
+
+* Added Lzma compression (from the Igor Pavlov 7z 19.0 sources)
+
+March-2019
+
+* Added Ascon,a selected algorithm in the CAESAR competition for authenticated encryption (the Ascon-128a, 64-bit optimized version)
+
 August-2018
 
 * Version 0.11 (hopefully the last API modification before v1.0).
@@ -49,11 +57,13 @@ August-2017
 Compression functions include:
 - The tiny **LZF** library by  Marc Alexander Lehmann. It is not as efficient as gzip, but much smaller and very fast.
 - The amazing **BriefLZ** algorithm by Joergen Ibsen. It is a bit slower than LZF, but the code is even smaller and it achieves a much better compression ratio (better than gzip on some workloads).  It could completely replace LZF in future versions of luazen.
+- The ultimate **LZMA** algorithm by Igor Pavlov of 7z fame. The code is larger than LZF or BriefLZ (it adds ~ 40Kbytes to luazen) but the ratio "code size / compression ratio" outclasses the competition.
 
 Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used).
 
 Cryptographic functions include:
 - **Morus**, a fast authenticated encryption algorithm with associated data (AEAD). Morus is a finalist (round 4) in the [CAESAR](http://competitions.cr.yp.to/caesar-submissions.html) competition. This is the Morus-1280 variant (160-byte state, 256 and 128-bit key, 128-bit nonce, optimized for 64-bit architectures). Its structure also makes it a very good fit for a [pure Lua implmentation](https://github.com/philanc/plc). 
+- **Ascon**, one of the slected encryption algorithm with associated data (AEAD) in the [CAESAR](http://competitions.cr.yp.to/caesar-submissions.html) competition. This is the Ascon-128a variant (64-bit optimized). 
 - **(X)Chacha20-Poly1305** authenticated encryption with additional data (AEAD). 
 - **Norx** authenticated encryption with additional data (AEAD) - this is the default 64-4-1 variant (256-bit key and nonce, 4 rounds)
 - **Blake2b**, **Sha512** cryptographic hash functions,
