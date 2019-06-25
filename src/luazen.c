@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Phil Leblanc  -- see LICENSE file
+// Copyright (c) 2019 Phil Leblanc  -- see LICENSE file
 // ---------------------------------------------------------------------
 // luazen crypto, encoding and compression library
 

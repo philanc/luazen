@@ -1,6 +1,7 @@
-// Copyright (c) 2018 Phil Leblanc  -- see LICENSE file
+// Copyright (c) 2019 Phil Leblanc  -- see LICENSE file
 // ---------------------------------------------------------------------
-// lzma - a Lua binding to LZMA by Igor Pavlov, of 7z fame
+// lzma - a Lua binding to LZMA by Igor Pavlov (7z)
+//	- all the LZMA code included here is Public Domain
 
 
 //----------------------------------------------------------------------
