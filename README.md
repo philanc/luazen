@@ -2,7 +2,7 @@
 # luazen
 
 [Luazen](https://github.com/philanc/luazen) is a small library with various encoding, compression and 
-cryptographic functions. All the functions work on strings, there is no stream or chunked more complex interfaces.
+cryptographic functions. All the functions work on strings, there is no stream or chunked complex interface.
 
 
 ### Recent changes
@@ -13,7 +13,7 @@ June-2019
 
 March-2019
 
-* Added Ascon,a selected algorithm in the CAESAR competition for authenticated encryption (the Ascon-128a, 64-bit optimized version)
+* Added Ascon, a selected algorithm in the CAESAR competition for authenticated encryption (the Ascon-128a, 64-bit optimized version)
 
 August-2018
 
