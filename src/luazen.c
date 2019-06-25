@@ -6,7 +6,7 @@
 // lua binding
 
 #define LIBNAME luazen
-#define VERSION "luazen-0.11"
+#define VERSION "luazen-0.12"
 
 #include <assert.h>
 
