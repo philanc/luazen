@@ -95,6 +95,18 @@ if lz.blz then do
 end
 
 ------------------------------------------------------------------------
+if lz.lzma then do
+	print("testing lzma...")
+	local x
+	x = ""; assert(lz.unlzma(lz.lzma(x)) == x)
+	x = "a"; assert(lz.unlzma(lz.lzma(x)) == x)
+	x = "Hello world"; assert(lz.unlzma(lz.lzma(x)) == x)
+	x = ("\0"):rep(301); assert(lz.unlzma(lz.lzma(x)) == x)
+	assert(#lz.lzma(("a"):rep(301)) < 30)
+	end
+end
+
+------------------------------------------------------------------------
 if lz.randombytes then do
 	print("testing random...")
 	local x = lz.randombytes(16)
