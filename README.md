@@ -72,7 +72,7 @@ scrypt, it is designed to be expensive in both CPU and memory.
 - **Curve25519**-based key exchange and public key encryption,
 - **Ed25519**-based signature function
 
-Legacy cryptographic functions include **md5**,  and **rc4** (a config option allows to build luazen without the legacy functions)
+Legacy cryptographic functions include **md5**,  and **rc4** (raw or drop-256 variant). 
 
 Luazen borrows heavily from other projects. See the License and credits section below.
 
