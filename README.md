@@ -80,6 +80,14 @@ Luazen borrows heavily from other projects. See the License and credits section 
 ```
 --- Compression functions
 
+lzma(str)
+	compress string str (LZMA algorithm)
+	return the compressed string or (nil, error message)
+
+unlzma(cstr)
+	uncompress string cstr
+	return the uncompressed string or (nil, error message)
+
 blz(str)
 	compress string str (BriefLZ algorithm)
 	return the compressed string or (nil, error message)
@@ -154,6 +162,31 @@ morus_encrypt(encrypt(k, n, m [, ninc [, ad]]) return c
 morus_decrypt(k, n, c [, ninc [, adln]]) 
 	return m | (nil, msg)
 	k: key string (16 or 32 bytes)
+	n: nonce string (16 bytes)
+	c: encrypted message string 
+	ninc: optional nonce increment (see above. defaults to 0)
+	adln: length of the AD prefix (default to 0)
+	return decrypted message m or (nil, errmsg) if MAC is not valid
+
+--- Authenticated encryption functions (Ascon-128a encryption algorithm)
+
+ascon_encrypt(encrypt(k, n, m [, ninc [, ad]]) return c
+	k: key string (16 bytes)
+	n: nonce string (16 bytes)
+	m: message (plain text) string 
+	ninc: optional nonce increment (useful when encrypting a long message
+	     as a sequence of block). The same parameter n can be used for 
+	     the sequence. ninc is added to n for each block, so the actual
+	     nonce used for each block encryption is distinct.
+	     ninc defaults to 0 (the nonce n is used as-is)
+	ad: prefix additional data (AD) (not encrypted, prepended to the 
+	     encrypted message). default to the empty string
+	return encrypted text string c with ad prefix (c includes 
+	the 16-byte MAC, so #c = #ad + #m + 16)
+
+ascon_decrypt(k, n, c [, ninc [, adln]]) 
+	return m | (nil, msg)
+	k: key string (16 bytes)
 	n: nonce string (16 bytes)
 	c: encrypted message string 
 	ninc: optional nonce increment (see above. defaults to 0)
