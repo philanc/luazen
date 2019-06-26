@@ -7,7 +7,7 @@ To facilitate custom builds, functions are included only if a related
 constant is defined (see function llib_init() below). 
 
 The following constants can be defined by uncommenting lines below 
-or with -Dname arguments  the compile command
+or with -Dname arguments in the compile command (see the Makefile)
 
 */
 
