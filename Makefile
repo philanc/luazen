@@ -1,4 +1,4 @@
-
+# luazen
 # ----------------------------------------------------------------------
 # adjust the following to the location of your Lua directory
 # or include files and executable
@@ -8,11 +8,36 @@ LUAINC= -I$(LUADIR)/include
 LUAEXE= $(LUADIR)/bin/lua
 
 # ----------------------------------------------------------------------
+# modular build: the following constants can be defined to include
+# the corresponding functions in the luazen library:
+#
+#   BASE64     Base64 encode/decode
+#   BASE58     Base58 encode/decode
+#   BLZ        BriefLZ compress/uncompress
+#   LZF        LZF compress/uncompress
+#   LZMA       LZMA compress/uncompress
+#   NORX       Norx AEAD encrypt/decrypt
+#   CHACHA     Xchacha20 AEAD encrypt/decrypt
+#   RC4        RC4 encrypt/decrypt
+#   MD5        MD5 hash
+#   BLAKE      Blake2b hash, Argon2i key derivation
+#   SHA2       SHA2-512 hash
+#   X25519     Ec25519 key exchange and ed25519 signature functions
+#   MORUS      Morus AEAD encrypt/decrypt
+#   ASCON      Ascon128a AEAD encrypt/decrypt
+#
+# the list of functions for the default build:
+FUNCS= -DBASE64 -DBASE58 -DBLZ -DLZMA -DNORX -DCHACHA \
+       -DRC4 -DMD5 -DBLAKE -DX25519 -DMORUS \
+       -DASCON -DLZF \
+       # -DSHA2 
+       
+
 
 CC= gcc
 AR= ar
 
-CFLAGS= -Os -fPIC $(LUAINC)  -D_7ZIP_ST
+CFLAGS= -Os -fPIC $(LUAINC) $(FUNCS)
 LDFLAGS= -fPIC 
 
 OBJS= \
@@ -26,6 +51,8 @@ all: luazen.so
 luazen.so: luazen.a
 	$(CC) -shared -o luazen.so $(LDFLAGS) luazen.o luazen.a
 	strip luazen.so
+	rm -f *.o
+
 
 luazen.a: src/*.c 
 	$(CC) -c $(CFLAGS) src/*.c

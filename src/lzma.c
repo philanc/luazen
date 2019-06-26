@@ -18,6 +18,8 @@
 
 /// include LzmaLib source (from lzma/C)
 
+#define _7ZIP_ST
+
 #include "lzma/7zTypes.h"
 #include "lzma/Compiler.h"
 #include "lzma/Alloc.h"
