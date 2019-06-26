@@ -70,7 +70,7 @@ Cryptographic functions include:
 - **Argon2i**, a modern key derivation function based on Blake2b. Like 
 scrypt, it is designed to be expensive in both CPU and memory.
 - **Curve25519**-based key exchange and public key encryption,
-- **Ed25519**-based signature function
+- **Ed25519**-based signature functions.
 
 Legacy cryptographic functions include **md5**,  and **rc4** (raw or drop-256 variant). 
 
