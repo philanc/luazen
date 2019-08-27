@@ -1,7 +1,11 @@
 
 
-local lz = require "luazen"
 
+package.path = "./?.lua"
+package.cpath = "./?.so"
+
+
+local lz = require "luazen"
 
 -- some local definitions
 
@@ -68,7 +72,7 @@ print("------------------------------------------------------------")
 print(_VERSION, lz.VERSION )
 print("------------------------------------------------------------")
 
-assert(lz.VERSION == "luazen-0.12")
+assert(lz.VERSION == "luazen-0.13b")
 
 ------------------------------------------------------------------------
 if lz.lzf then do
@@ -97,7 +101,8 @@ end
 ------------------------------------------------------------------------
 if lz.lzma then do
 	print("testing lzma...")
-	local x
+	local x, c, s
+	
 	x = ""; assert(lz.unlzma(lz.lzma(x)) == x)
 	x = "a"; assert(lz.unlzma(lz.lzma(x)) == x)
 	x = "Hello world"; assert(lz.unlzma(lz.lzma(x)) == x)

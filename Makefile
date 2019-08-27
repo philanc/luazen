@@ -27,10 +27,12 @@ LUAEXE= $(LUADIR)/bin/lua
 #   ASCON      Ascon128a AEAD encrypt/decrypt
 #
 # the list of functions for the default build:
-FUNCS= -DBASE64 -DBASE58 -DBLZ -DLZMA -DNORX -DCHACHA \
-       -DRC4 -DMD5 -DBLAKE -DX25519 -DMORUS \
-       -DASCON -DLZF \
-       # -DSHA2 
+FUNCS= -DBASE64 -DLZMA  \
+       -DMD5 -DBLAKE -DX25519 -DMORUS \
+        \
+       #-DBASE58 -DBLZ 
+       #-DNORX -DCHACHA
+       #-DRC4  -DSHA2  -DASCON -DLZF
        
 
 
@@ -44,7 +46,8 @@ OBJS= \
 	random.o base64.o base58.o \
 	blz.o  lzf.o  lzma.o  \
 	norx.o md5.o rc4.o xor.o blake2b.o  \
-	sha2.o x25519.o chacha.o morus.o  ascon.o 
+	sha2.o x25519.o chacha.o morus.o  ascon.o \
+	Alloc.o LzFind.o LzmaDec.o LzmaEnc.o LzmaLib.o
 
 all: luazen.so
 
@@ -54,8 +57,9 @@ luazen.so: luazen.a
 	rm -f *.o
 
 
-luazen.a: src/*.c 
+luazen.a: src/*.c src/lzma/*.c src/lzma/*.h
 	$(CC) -c $(CFLAGS) src/*.c
+	$(CC) -c $(CFLAGS)  -D_7ZIP_ST  src/lzma/*.c
 	$(AR) rcu luazen.a $(OBJS)
 
 test: test/test_luazen.lua luazen.so
