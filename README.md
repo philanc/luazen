@@ -399,7 +399,7 @@ The constants and the corresponding groups of functions are listed below:
 
 The constants are defined in the Makefile in the variable `FUNCS`. 
 
-The default build is defined by:
+The set of functions in the default build is defined by:
 ```
 FUNCS= -DBASE64 -DLZMA -DMD5 -DBLAKE -DX25519 -DMORUS
 ```
@@ -409,12 +409,12 @@ A specific build containing for example Chacha20 encryption, SHA-512 hash and cu
 FUNCS= -DCHACHA -DSHA2 -DX25519
 ```
 
-Once the FUNCS variable is set in the Makefile, the library can be built with:
+Once the FUNCS variable is set in the Makefile, the library is built with:
 ```
 make
 ```
 
-Simple tests of the included functions can be run with 
+Simple tests of the included functions can be run with: 
 ```
 make test
 ```
@@ -440,4 +440,4 @@ See [src/crypto_licenses.md](https://github.com/philanc/luazen/blob/master/src/c
 
 (the code from these sources has been more or less modified - all bugs are probably mine!)
 
-Copyright (c) 2018  Phil Leblanc 
+Copyright (c) 2019  Phil Leblanc 
