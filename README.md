@@ -7,6 +7,10 @@ cryptographic functions. All the functions work on strings, there is no stream o
 
 ### Recent changes
 
+December-2019
+
+* "Modular build" - instead of including all functions, Luazen can be built *à la carte.* - see the Build section below.  Obsolete/non-functional rockspecs have been removed.
+
 June-2019
 
 * Added Lzma compression (from the Igor Pavlov 7z 19.0 sources)
@@ -368,6 +372,53 @@ randombytes(n)
 
 
 ```
+
+### Modular build
+
+Constants can be defined at compile time to include the corresponding groups of functions in the luazen library (check the Makefile and src.luazen/luazen.c). It allows to build a smaller luazen library containing only the required functions.
+
+The constants and the corresponding groups of functions are listed below:
+
+```
+  BASE64     Base64 encode/decode
+  BASE58     Base58 encode/decode
+  BLZ        BriefLZ compress/uncompress
+  LZF        LZF compress/uncompress
+  LZMA       LZMA compress/uncompress
+  NORX       Norx AEAD encrypt/decrypt
+  CHACHA     Xchacha20 AEAD encrypt/decrypt
+  RC4        RC4 encrypt/decrypt
+  MD5        MD5 hash
+  BLAKE      Blake2b hash, Argon2i key derivation
+  SHA2       SHA2-512 hash
+  X25519     Ec25519 key exchange and ed25519 signature functions
+  MORUS      Morus AEAD encrypt/decrypt
+  ASCON      Ascon128a AEAD encrypt/decrypt
+
+```
+
+The constants are defined in the Makefile in the variable `FUNCS`. 
+
+The default build is defined by:
+```
+FUNCS= -DBASE64 -DLZMA -DMD5 -DBLAKE -DX25519 -DMORUS
+```
+
+A specific build containing for example Chacha20 encryption, SHA-512 hash and curve 25519 public key crypto can be defined with:
+```
+FUNCS= -DCHACHA -DSHA2 -DX25519
+```
+
+Once the FUNCS variable is set in the Makefile, the library can be built with:
+```
+make
+```
+
+Simple tests of the included functions can be run with 
+```
+make test
+```
+
 
 
 ### License and credits

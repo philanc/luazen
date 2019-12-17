@@ -31,7 +31,6 @@ or with -Dname arguments in the compile command (see the Makefile)
 // lua binding
 
 #define LIBNAME luazen
-//~ #define VERSION "luazen-0.13"
 #define VERSION "luazen-0.13b"
 
 #include <assert.h>

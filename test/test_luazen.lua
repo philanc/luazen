@@ -101,8 +101,7 @@ end
 ------------------------------------------------------------------------
 if lz.lzma then do
 	print("testing lzma...")
-	local x, c, s
-	
+	local x	
 	x = ""; assert(lz.unlzma(lz.lzma(x)) == x)
 	x = "a"; assert(lz.unlzma(lz.lzma(x)) == x)
 	x = "Hello world"; assert(lz.unlzma(lz.lzma(x)) == x)

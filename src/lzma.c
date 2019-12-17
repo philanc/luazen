@@ -51,8 +51,7 @@ int ll_lzma(lua_State *L) {
 	// allocate compression buffer:
 	// bufln is buffer length. suggested value is input size + 11% +16kb
 	// (we use 'sln + sln>>3', ie input length +12.5%)
-	//~ bufln = sln + (sln >> 3) + 16384; 
-	bufln = sln + (sln >> 3) + 66000; 
+	bufln = sln + (sln >> 3) + 16384; 
 	unsigned char * buf = lua_newuserdata(L, bufln);
 
 	// cln, propssize _MUST_ be initialized before calling LzmaCompress
