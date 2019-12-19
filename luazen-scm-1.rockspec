@@ -5,7 +5,11 @@ source = {
 }
 description = {
    summary = "Simple compression, encoding and cryptographic functions.",
-   detailed = [[A small library with various encoding functions (base58, base64), compression functions (LZMA, BriefLZ, LZF), authenticated encryption (Morus, XChacha20/Poly1305, Norx), cryptographic hash (Blake2b, SHA-512), key derivation function (Argon2i), curve25519  and ed25519 public key functions, and legacy cryptographic functions (MD5, RC4). 
+   detailed = [[
+	  A small library with various encoding functions (base58, base64), 
+	  compression functions (LZMA, BriefLZ, LZF), authenticated encryption (Morus, XChacha20/Poly1305, Norx), 
+	  cryptographic hash (Blake2b, SHA-512), key derivation function (Argon2i),  curve25519  and ed25519 public key functions, 
+	  and legacy cryptographic functions (MD5, RC4). 
    ]],
    homepage = "https://github.com/philanc/luazen",
    license = "MIT",
@@ -49,7 +53,8 @@ build = {
 		},
 		defines = {
 			"_7ZIP_ST",
-			"BASE64", "LZMA", "MD5", "BLAKE", "X25519", "MORUS"
+			"BASE64", "LZMA", "MD5", "BLAKE", "X25519", "MORUS",
+			"BASE58", "BLZ", "LZF", "NORX", "ASCON", "RC4"
 		}
 	  }
    },
