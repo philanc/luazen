@@ -17,7 +17,7 @@ or with -Dname arguments in the compile command (see the Makefile)
 // #define LZF        LZF compress/uncompress
 // #define LZMA       LZMA compress/uncompress
 // #define NORX       Norx AEAD encrypt/decrypt
-// #define CHACHA     Xchacha20 AEAD encrypt/decrypt
+// #define CHACHA     Xchacha20 AEAD encrypt/decrypt (with Poly1305 MAC)
 // #define RC4        RC4 encrypt/decrypt
 // #define MD5        MD5 hash
 // #define BLAKE      Blake2b hash, Argon2i key derivation
@@ -31,7 +31,7 @@ or with -Dname arguments in the compile command (see the Makefile)
 // lua binding
 
 #define LIBNAME luazen
-#define VERSION "luazen-0.13b"
+#define VERSION "luazen-0.15"
 
 #include <assert.h>
 

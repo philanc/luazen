@@ -1,8 +1,8 @@
 package = "luazen"
-version = "0.12-1"
+version = "0.15-1"
 source = {
    url = "git://github.com/philanc/luazen",
-    branch = "v0.12",
+    branch = "v0.15",
 }
 description = {
    summary = "Simple compression, encoding and cryptographic functions.",

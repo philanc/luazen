@@ -72,7 +72,7 @@ print("------------------------------------------------------------")
 print(_VERSION, lz.VERSION )
 print("------------------------------------------------------------")
 
-assert(lz.VERSION == "luazen-0.13b")
+assert(lz.VERSION == "luazen-0.15")
 
 ------------------------------------------------------------------------
 if lz.lzf then do
@@ -149,7 +149,26 @@ if lz.rc4 then do
 end
 
 ------------------------------------------------------------------------
--- rabbit
+if lz.xchacha_encrypt then
+	print("testing xchacha...")
+	local k = string.rep("k", 32)
+	local n = string.rep("n", 24)
+	local a = string.rep("a", 10)
+	local m = string.rep("m", 20)
+	-- test defaults
+	local c1 = lz.xchacha_encrypt(k, n, m)
+	assert(#c1 == 0 + #m + 16)
+	local p1, a1 = lz.xchacha_decrypt(k, n, c1)
+	assert(p1 ~= nil and p1 == m and a1 == "")
+	-- test with aad
+	local c2 = lz.xchacha_encrypt(k, n, m, 0, a)
+	assert(#c2 == #a + #m + 16)
+	local p2, a2 = lz.xchacha_decrypt(k, n, c2, 0, #a)
+	assert(p2 ~= nil and p2 == m and a2 == a)
+end --if xchacha
+
+
+------------------------------------------------------------------------
 if lz.rabbit then do
 	print("testing rabbit...")
 	-- quick test with some eSTREAM test vectors
@@ -188,13 +207,14 @@ if lz.rabbit then do
 end--if
 
 ------------------------------------------------------------------------
--- md5
 if lz.md5 then do
 	print("testing md5...")
 	assert(stx(lz.md5('')) == 'd41d8cd98f00b204e9800998ecf8427e')
 	assert(stx(lz.md5('abc')) == '900150983cd24fb0d6963f7d28e17f72')
 	end--do
-end--if
+end--if md5
+
+
 ------------------------------------------------------------------------
 if lz.b64encode then do 
 	print("testing base64...")

@@ -779,12 +779,13 @@ int ll_xchacha_decrypt(lua_State *L) {
 	char actn[24]; // actual nonce "n + ninc"
 	memcpy(actn, n, nln); 
 	(*(uint64_t *) actn) = (*(uint64_t *) actn) + ninc;
-	crypto_unlock_aead(
+	mln = cln - aadln - 16;
+	r = crypto_unlock_aead(
 			buf,
 			k, actn,
 			c + cln - 16,  // mac address (last 16 bytes of encrypted message)
 			c, aadln,  // aad is at the beginning of c
-			c + aadln, cln - aadln - 16); // encrypted text, text size
+			c + aadln, mln); // encrypted text, text size
 			
 	if (r != 0) { 
 		free(buf); 
@@ -795,7 +796,7 @@ int ll_xchacha_decrypt(lua_State *L) {
 	lua_pushlstring (L, buf, mln); 
 	lua_pushlstring (L, c, aadln); 
 	free(buf);
-	return 3;
+	return 2;
 } // ll_xchacha_decrypt()
 
 

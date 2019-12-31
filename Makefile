@@ -29,10 +29,8 @@ LUAEXE= $(LUADIR)/bin/lua
 # the list of functions for the default build:
 FUNCS= -DBASE64 -DLZMA  \
        -DMD5 -DBLAKE -DX25519 -DMORUS \
-        \
-       #-DBASE58 -DBLZ 
-       #-DNORX -DCHACHA
-       #-DRC4  -DSHA2  -DASCON -DLZF
+       -DBASE58 -DBLZ -DNORX -DCHACHA \
+       -DRC4  -DSHA2  -DASCON -DLZF
        
 
 
