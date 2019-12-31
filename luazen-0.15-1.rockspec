@@ -51,7 +51,8 @@ build = {
 		defines = {
 			"_7ZIP_ST",
 			"BASE64", "LZMA", "MD5", "BLAKE", "X25519", "MORUS",
-			"BASE58", "BLZ", "LZF", "NORX", "ASCON", "RC4"
+			"CHACHA", "BASE58", "BLZ", "LZF", "NORX", "ASCON", 
+			"RC4"
 		}
 	  },
    },

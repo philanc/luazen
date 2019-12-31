@@ -399,10 +399,7 @@ The constants and the corresponding groups of functions are listed below:
 
 The constants are defined in the Makefile in the variable `FUNCS`. 
 
-The set of functions in the default build is defined in the Makefile by:
-```
-FUNCS= -DBASE64 -DLZMA -DMD5 -DBLAKE -DX25519 -DMORUS
-```
+The provided Makefile defines all the constants, so the default build includes all the functions
 
 A specific build containing for example Chacha20 encryption, SHA-512 hash and curve 25519 public key crypto can be defined with:
 ```
@@ -419,10 +416,10 @@ Simple tests of the included functions can be run with:
 make test
 ```
 
-Rockspec files are also provided to build the current luazen version (v0.12) and the last github version with Luarocks:
+Rockspec files are also provided to build the current luazen version (v0.15) and the last github version with Luarocks:
 ```
-	# build version 0.12:
-	luarocks build luazen-0.12-1.rockspec
+	# build version 0.15:
+	luarocks build luazen-0.15-1.rockspec
 	
 	# build last github version 
 	luarocks build luazen-scm-1.rockspec
@@ -432,7 +429,7 @@ The provided rockspec files build luazen with all functions included. The list o
 ``                
 		defines = {
                         "_7ZIP_ST",
-                        "BASE64", "LZMA", "MD5", "BLAKE", "X25519", "MORUS",
+                        "BASE64", "LZMA", "MD5", "BLAKE", "X25519", "MORUS", "CHACHA",
                         "BASE58", "BLZ", "LZF", "NORX", "ASCON", "RC4"
                 }
 ``
