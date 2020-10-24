@@ -7,6 +7,14 @@ cryptographic functions. All the functions work on strings, there is no stream o
 
 ### Recent changes
 
+October-2020  version 0.16
+
+* lzma() produces now a compressed format compatible with linux lzma and unlzma commands. So a string compressed by luazen.lzma() can now be uncompressed by the linux unlzma command.
+
+* The unlzma() luazen function can now uncompress data compressed either in the former luazen format ("legacy") or in the new "standard" format. So user programs will be able to transparently uncompress data compressed with older luazen versions.
+
+* The file 'lzma_std_fmt.lua' contains more details about both formats and Lua functions to detect the LZMA compression format and convert compressed strings from the legacy to the standard format. This may be useful only for programs still using former luazen versions.
+
 December-2019
 
 * "Modular build" - instead of including all functions, Luazen can be built *à la carte.* - see the Build section below.  Obsolete/non-functional rockspecs have been removed.

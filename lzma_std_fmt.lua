@@ -73,7 +73,7 @@ end
 
 local function convert_to_standard(legacy_compressed)
 	if lzma_format(legacy_compressed) ~= "legacy" then
-		return nil, "input is not in legacy format")
+		return nil, "input is not in legacy format"
 	end
 	local uln = sunpack("<I4", legacy_compressed)
 	local std_compressed = legacy_compressed:sub(5, 9) -- lzprops
