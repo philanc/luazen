@@ -7,19 +7,8 @@ same format as what the standard linux command 'lzma' produces.
 Luazen will switch in the future to the standard format used by 
 lzma and unlzma linux commands.
 
-The current luazen format (called the "legacy format") is deprecated.
+The "legacy" format, produced by luazen.lzma() up to commit 68a1c4d38928fe89dc7206bebbed225a45e57bd9,  Oct 24, 2020, is deprecated.
 
-The following Lua function in this module can be used to convert a string 
-compressed with luazen current and past versions to the lzma standard format.
-
-  convert_to_standard(legacy_compressed) => standard_compressed
-
-The following functions can be used to directly compress to and 
-decompress from the lzma standard format, using the current luazen functions
-
-  lzma(plain_string) => std_compressed_string
-  unlzma(std_compressed_string) => plain_string
-  
 ------------------------------------------------------------------------
 Current luazen "legacy" format:
 
@@ -34,13 +23,58 @@ Standard lzma format:
   lzprops: lzma compression parameters (5 bytes)
   uln8: uncompressed string length (8 bytes, stored as little-endian)
 
+------------------------------------------------------------------------
+The functions in this module help with the transition:
+
+lzma_format(compressed_string) => "legacy" | "standard" | "unknown"
+
+    return the name of the compression format.
+    "legacy" is the format produced by former luazen.lzma()
+    "standard" is the format produced by future luazen.lzma()
+    "unknown" is returned if the string has not been compressed with
+    luazen.lzma()
+
+convert_to_standard(legacy_compressed) => standard_compressed
+
+    convert a string compressed with luazen current and past versions 
+    to the lzma standard format.
+
+
+The following functions can be used to directly compress to and 
+decompress from the lzma standard format, using current luazen functions
+(before the switch to the standard format)
+
+    lzma(plain_string) => std_compressed_string
+    
+    unlzma(std_compressed_string) => plain_string
+
+Note that unlzma() is intended to decompress strings compressed with 
+the lzma function above or by luazen.lzma(). Given the number parameters
+that can be used with the linux lzma command, there is NO guarantee that
+any string produced by the lzma linux command can be uncompressed by 
+this function
+
 ]]
 
 local luazen = require "luazen"
 
 local spack, sunpack = string.pack, string.unpack
 
+local function lzma_format(compressed_string)
+	local lzprops = "\x5d\0\0\0\1"
+	if compressed_string:sub(5, 9) == lzprops then
+		return "legacy"
+	elseif compressed_string:sub(1, 5) == lzprops then
+		return "standard"
+	else
+		return "unknown"
+	end
+end
+
 local function convert_to_standard(legacy_compressed)
+	if lzma_format(legacy_compressed) ~= "legacy" then
+		return nil, "input is not in legacy format")
+	end
 	local uln = sunpack("<I4", legacy_compressed)
 	local std_compressed = legacy_compressed:sub(5, 9) -- lzprops
 		.. spack("<I8", uln) -- uln
@@ -58,8 +92,7 @@ local function lzma(plain_string)
 end
 
 local function unlzma(std_compressed)
-	-- CAVEAT
-	-- this should work only with string compressed with 
+	-- CAVEAT: this should work only with string compressed with 
 	-- the lzma function above.
 	-- Given the number of lzma options, there is NO guarantee that
 	-- any string produced by the lzma linux command can be 
@@ -77,6 +110,7 @@ end
 
 -- return the module
 return {
+	lzma_format = lzma_format,
 	convert_to_standard = convert_to_standard,
 	lzma = lzma, 
 	unlzma = unlzma, 
