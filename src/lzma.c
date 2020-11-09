@@ -143,7 +143,7 @@ int ll_unlzma(lua_State *L) {
 	if (strncmp(c, default_props, 5) == 0) {
 		// standard format - set LzmaUncompress parameters
 		sln64 = load64_le(c + LZMA_PROPS_SIZE);
-		if (sln64 >= 1L<<32) { 
+		if (sln64 >= 1LL<<32) { 
 			lua_pushnil (L);
 			lua_pushliteral(L, "uncompressed string too large");
 			return 2;
