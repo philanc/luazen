@@ -145,7 +145,7 @@ For the Blake2b code:
 
 
 ------------------------------------------------------------------------
---- lzf*
+--- lzf
 
 /*
  * Copyright (c) 2000-2010 Marc Alexander Lehmann <schmorp@schmorp.de>

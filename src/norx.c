@@ -1,7 +1,7 @@
 // Copyright (c) 2018  Phil Leblanc  -- see LICENSE file
 // ---------------------------------------------------------------------
 //
-// NORX authenticated encryption - https://norx.io/
+// NORX authenticated encryption - https://github.com/norx/resources
 //
 // ---------------------------------------------------------------------
 // Original NORX public domain dedication:
