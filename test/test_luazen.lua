@@ -417,13 +417,13 @@ if lz.morus_encrypt then do
 	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
-	m = "\x01"; ad = ""
+	m = "\1"; ad = ""
 	e = encrypt(k, iv, m, 0, ad)
 	assert(e == xts"ba ec1942a315a84695432a1255e6197878")
 	m2, err = decrypt(k, iv, e, 0, #ad)
 	assert(m2 == m)
 	--
-	m = ""; ad = "\x01"
+	m = ""; ad = "\1"
 	e = encrypt(k, iv, m, 0, ad)
 --~ 	print(stx(e))
 	assert(e == xts"01 590caa148b848d7614315685377a0d42") --ad,tag
@@ -431,7 +431,7 @@ if lz.morus_encrypt then do
 	assert(m2 == m)
 	--
 	k = xts'01000000000000000000000000000000'
-	m = "\x00"; ad = "\x00"
+	m = "\0"; ad = "\0"
 	e = encrypt(k, iv, m, 0, ad)
 	assert(#e == #ad + #m + 16)
 	assert(e == xts"00 cf f9f0a331e3de3293b9dd2e65ba820009")--ad,c,tag
@@ -440,7 +440,7 @@ if lz.morus_encrypt then do
 	--
 	k =  xts'00000000000000000000000000000000'
 	iv = xts'01000000000000000000000000000000'
-	m = "\x00"; ad = "\x00"
+	m = "\0"; ad = "\0"
 	e = encrypt(k, iv, m, 0, ad)
 	assert(#e == #ad + #m + 16)
 	assert(e == xts"00 09 c957f9ca617876b5205155cd936eb9bb")--ad,c,tag
