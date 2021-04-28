@@ -1,8 +1,11 @@
 
 # luazen
 
-[Luazen](https://github.com/philanc/luazen) is a small library with various encoding, compression and 
-cryptographic functions. All the functions work on strings, there is no stream or chunked complex interface.
+[Luazen](https://github.com/philanc/luazen) is a small library with various compression, encoding and 
+cryptographic functions for Lua: LZMA, base64 and base58, Chacha20, curve25519 key exchange, ed25519 signature, Blake2b hash, Argon2i key derivation and more...
+          
+
+All the functions work on strings, there is no stream or chunked complex interface.
 
 
 ### Recent changes
@@ -17,7 +20,7 @@ October-2020  version 0.16
 
 December-2019
 
-* "Modular build" - instead of including all functions, Luazen can be built *à la carte.* - see the Build section below.  Obsolete/non-functional rockspecs have been removed.
+* "Modular build" - instead of including all functions, Luazen can be built *Ã  la carte.* - see the Build section below.  Obsolete/non-functional rockspecs have been removed.
 
 June-2019
 
