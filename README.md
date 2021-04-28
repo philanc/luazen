@@ -5,7 +5,7 @@
 cryptographic functions for Lua: LZMA, base64 and base58, Chacha20, curve25519 key exchange, ed25519 signature, Blake2b hash, Argon2i key derivation and more...
           
 
-All the functions work on strings, there is no stream or chunked complex interface.
+All the functions work on strings, there is no stream or chunked complex interface. All the code is included. No external dependencies.
 
 
 ### Recent changes
