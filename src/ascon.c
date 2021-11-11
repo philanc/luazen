@@ -91,7 +91,7 @@ typedef long long i64;
 
 static const int R[5][2] = { {19, 28}, {39, 61}, {1, 6}, {10, 17}, {7, 41} };
 
-#define ROUND(C) ({\
+#define ROUND(C) {\
     x2 ^= C;\
     x0 ^= x4;\
     x4 ^= x3;\
@@ -135,9 +135,9 @@ static const int R[5][2] = { {19, 28}, {39, 61}, {1, 6}, {10, 17}, {7, 41} };
     t0 ^= x0;\
     x0 = ROTR(x0, R[0][1] - R[0][0]);\
     x0 ^= t0;\
-  })
+  }
 
-#define P12 ({\
+#define P12 {\
   ROUND(0xf0);\
   ROUND(0xe1);\
   ROUND(0xd2);\
@@ -150,9 +150,9 @@ static const int R[5][2] = { {19, 28}, {39, 61}, {1, 6}, {10, 17}, {7, 41} };
   ROUND(0x69);\
   ROUND(0x5a);\
   ROUND(0x4b);\
-})
+}
 
-#define P8 ({\
+#define P8 {\
   ROUND(0xb4);\
   ROUND(0xa5);\
   ROUND(0x96);\
@@ -161,7 +161,7 @@ static const int R[5][2] = { {19, 28}, {39, 61}, {1, 6}, {10, 17}, {7, 41} };
   ROUND(0x69);\
   ROUND(0x5a);\
   ROUND(0x4b);\
-})
+}
 
 static int crypto_aead_encrypt(
     unsigned char *c, unsigned long long *clen,
