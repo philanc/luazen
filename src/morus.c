@@ -33,6 +33,7 @@
 //----------------------------------------------------------------------
 // debug functions
 
+#ifdef DEBUG
 #define pmsg(x) printf("== %s\n", x);
 #define pxln(msg, x, ln) printf("== %s  %x  %d\n", msg, x, ln)
 
@@ -48,6 +49,7 @@ static void pst(uint64_t s[][4]) {
 	p48(s[4][0],s[4][1],s[4][2],s[4][3]);
 	printf("---\n");
 }//pst
+#endif
 
 //~ #ifdef _MSC_VER
 //~ #define inline __inline

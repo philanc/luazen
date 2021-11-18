@@ -30,6 +30,7 @@
 #define pmsg(x) printf("== %s\n", x);
 #define pxln(msg, x, ln) printf("== %s  %x  %d\n", msg, x, ln)
 
+#ifdef DEBUG
 static void p48(uint64_t a, uint64_t b, uint64_t c, uint64_t d) {
 	//~ printf("%016I64x %016I64x %016I64x %016I64x \n", a, b, c, d);
 	printf("%016llx %016llx %016llx %016llx \n", a, b, c, d);
@@ -42,6 +43,8 @@ static void pst(uint64_t s[][4]) {
 	p48(s[4][0],s[4][1],s[4][2],s[4][3]);
 	printf("---\n");
 }//pst
+
+#endif
 
 //----------------------------------------------------------------------
 // ascon128av12/ref code
