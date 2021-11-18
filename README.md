@@ -1,3 +1,4 @@
+![CI](https://github.com/philanc/luazen/workflows/CI/badge.svg)
 
 # luazen
 

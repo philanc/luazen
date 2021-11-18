@@ -1,0 +1,23 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run test_luazen.lua
+      run: |
+        # !! no leading tabs here - spaces only !!
+        set -e
+        set -v
+        wget -q https://www.lua.org/ftp/lua-5.4.3.tar.gz
+        tar xzf lua-5.4.3.tar.gz
+        cd lua-5.4.3
+        # build for linux w/o readline. install to dir ./install/  
+        make linux local 
+        cd ..
+        make test LUADIR=./lua-5.4.3/install
