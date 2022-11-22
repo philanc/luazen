@@ -11,7 +11,7 @@ All the functions work on strings, there is no stream or chunked complex interfa
 
 November-2022  version 2.0
 
-* The luazen library has been seriously streamlined. Algorithms that are either legacy, deprecated, not widely used, or that can be replaced with a [pure Lua implementation](https://github.com/philanc/plc have been retired (ascon, base58, blz, lzf, morus, norx, rc4)
+* The luazen library has been seriously streamlined. Algorithms that are either legacy, deprecated, not widely used, or that can be replaced with a [pure Lua implementation](https://github.com/philanc/plc) have been retired (ascon, base58, blz, lzf, morus, norx, rc4)
 
 * The last luazen version including all these algorithms is v0.16. It can be accessed [here](https://github.com/philanc/luazen/tree/v0.16).
 
