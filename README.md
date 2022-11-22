@@ -162,9 +162,6 @@ b64decode(str)
 
 ```
 
-(1) see section *Key derivation* in the the [BLAKE3 paper](https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf)
-
-
 ## Building 
 
 Adjust the Makefile according to your Lua installation (set the LUADIR variable). 
