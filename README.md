@@ -3,7 +3,7 @@
 # luazen
 
 [Luazen](https://github.com/philanc/luazen) is a small library with various compression, encoding and 
-cryptographic functions for Lua: LZMA compression, base64 encoding, Chacha20 authenticated encryption, curve25519 key exchange, ed25519 signature, md5 and blake2b hash, argon2i key derivation.
+cryptographic functions for Lua: LZMA compression, base64 encoding, Chacha20 authenticated encryption, curve25519 key exchange, ed25519 signature, md5, sha512 and blake3 hash.
 
 All the functions work on strings, there is no stream or chunked complex interface. All the C code is included. No external dependencies.
 
