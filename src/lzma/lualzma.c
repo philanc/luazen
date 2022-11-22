@@ -1,11 +1,18 @@
-// Copyright (c) 2019 Phil Leblanc  -- see LICENSE file
+// Copyright (c) 2021 Phil Leblanc  -- see LICENSE file
 // ---------------------------------------------------------------------
 // lzma - a Lua binding to LZMA by Igor Pavlov (7z)
-//	- all the LZMA code included here is Public Domain
 
+// all the LZMA code included here is Public Domain
+
+// this binding has been taken from luazen-0.16
+// https://github.com/philanc/luazen
+
+
+#define VERSION "lualzma-0.16"
 
 //----------------------------------------------------------------------
 // lua binding
+
 
 #include <stdint.h>
 #include <string.h>
@@ -17,13 +24,38 @@
 #include "lauxlib.h"
 
 // single thread (no multi-thread support)
-#define _7ZIP_ST
+//~ #define _7ZIP_ST   --- defined in the makefile
 
-#include "lzma/LzmaLib.h"
+#include "LzmaLib.h"
+
+
+//----------------------------------------------------------------------
+// compatibility with Lua 5.2  --and lua 5.3, added 150621
+// (from roberto's lpeg 0.10.1 dated 101203)
+//
+#if (LUA_VERSION_NUM >= 502)
+
+#undef lua_equal
+#define lua_equal(L,idx1,idx2)  lua_compare(L,(idx1),(idx2),LUA_OPEQ)
+
+#undef lua_getfenv
+#define lua_getfenv	lua_getuservalue
+#undef lua_setfenv
+#define lua_setfenv	lua_setuservalue
+
+#undef lua_objlen
+#define lua_objlen	lua_rawlen
+
+#undef luaL_register
+#define luaL_register(L,n,f) \
+	{ if ((n) == NULL) luaL_setfuncs(L,f,0); else luaL_newlib(L,f); }
+
+#endif
 
 
 //----------------------------------------------------------------------
 //-- lua binding
+
 
 static uint32_t load32_le(const uint8_t s[4]) {
     return (uint32_t)s[0]
@@ -176,3 +208,4 @@ int ll_unlzma(lua_State *L) {
 	lua_pushlstring (L, dest, dln); 
 	return 1;
 } //unlzma()
+

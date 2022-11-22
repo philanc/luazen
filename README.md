@@ -3,98 +3,34 @@
 # luazen
 
 [Luazen](https://github.com/philanc/luazen) is a small library with various compression, encoding and 
-cryptographic functions for Lua: LZMA, base64 and base58, Chacha20, curve25519 key exchange, ed25519 signature, Blake2b hash, Argon2i key derivation and more...
-          
+cryptographic functions for Lua: LZMA compression, base64 encoding, Chacha20 authenticated encryption, curve25519 key exchange, ed25519 signature, md5 and blake2b hash, argon2i key derivation.
 
-All the functions work on strings, there is no stream or chunked complex interface. All the code is included. No external dependencies.
-
+All the functions work on strings, there is no stream or chunked complex interface. All the C code is included. No external dependencies.
 
 ### Recent changes
 
-October-2020  version 0.16
+November-2022  version 2.0
 
-* lzma() produces now a compressed format compatible with linux lzma and unlzma commands. So a string compressed by luazen.lzma() can now be uncompressed by the linux unlzma command.
+* The luazen library has been seriously streamlined. Algorithms that are either legacy, deprecated, not widely used, or that can be replaced with a [pure Lua implementation](https://github.com/philanc/plc have been retired (ascon, base58, blz, lzf, morus, norx, rc4)
 
-* The unlzma() luazen function can now uncompress data compressed either in the former luazen format ("legacy") or in the new "standard" format. So user programs will be able to transparently uncompress data compressed with older luazen versions.
-
-* The file 'lzma_std_fmt.lua' contains more details about both formats and Lua functions to detect the LZMA compression format and convert compressed strings from the legacy to the standard format. This may be useful only for programs still using former luazen versions.
-
-December-2019
-
-* "Modular build" - instead of including all functions, Luazen can be built *à la carte.* - see the Build section below.  Obsolete/non-functional rockspecs have been removed.
-
-June-2019
-
-* Added Lzma compression (from the Igor Pavlov 7z 19.0 sources)
-
-March-2019
-
-* Added Ascon, a selected algorithm in the CAESAR competition for authenticated encryption (the Ascon-128a, 64-bit optimized version)
-
-August-2018
-
-* Version 0.11 (hopefully the last API modification before v1.0).
-
-    - Blake2b API: removed the chunked interface ('init', 
-'update' and 'final' functions are combined in one 'blake2b' function).
-
-    - Morus API: switched parameters 'ad' and 'ninc' (homogenized API with Norx and XChacha).
-
-
-April-2018:  
-
-* The current version is now v0.10. Please note that the library has undergone significant modifications since version 0.9, both implementation and API. Moving toward a good and hopefully stable API before tagging the v1.0.
-
-    - The former version v0.9 is available [here](https://github.com/philanc/luazen/tree/v0.9) or can be installed with  	luazen-0.9-1.rockspec.
-
-* Added *Morus*, a finalist (round 4) in the CAESAR competition for authenticated encryption.
-
-* The Gimli functions which briefly appeared here have been removed.
-
-March-2018: moving toward v0.10 - some significant changes:
-
-* The code has been reorganized to make it easier to build variants of the library with an "a la carte" selection of modules
-
-* Some functions have been renamed (see API below)
-
-* Added  (X)Chacha20-Poly1305 authenticated encryption with additional data (AEAD)
-
-* all the curve25519 functions are based on the tweetnacl implementation
-
-* The ed25519 signature functions use sha512 instead of blake2b hash
-
-
-August-2017
-
-* Added the amazing *BriefLZ* compression functions.  
-
-### Functions
-
-Compression functions include:
-- The tiny **LZF** library by  Marc Alexander Lehmann. It is not as efficient as gzip, but much smaller and very fast.
-- The amazing **BriefLZ** algorithm by Joergen Ibsen. It is a bit slower than LZF, but the code is even smaller and it achieves a much better compression ratio (better than gzip on some workloads).  It could completely replace LZF in future versions of luazen.
-- The ultimate **LZMA** algorithm by Igor Pavlov of 7z fame. The code is larger than LZF or BriefLZ (it adds ~ 40Kbytes to luazen) but the ratio "code size / compression ratio" outclasses the competition.
-
-Endoding and decoding functions are provided for **base64** and **base58** (for base58, the BitCoin encoding alphabet is used).
-
-Cryptographic functions include:
-- **Morus**, a fast authenticated encryption algorithm with associated data (AEAD). Morus is a finalist (round 4) in the [CAESAR](http://competitions.cr.yp.to/caesar-submissions.html) competition. This is the Morus-1280 variant (160-byte state, 256 and 128-bit key, 128-bit nonce, optimized for 64-bit architectures). Its structure also makes it a very good fit for a [pure Lua implmentation](https://github.com/philanc/plc). 
-- **Ascon**, one of the slected encryption algorithm with associated data (AEAD) in the [CAESAR](http://competitions.cr.yp.to/caesar-submissions.html) competition. This is the Ascon-128a variant (64-bit optimized). 
-- **(X)Chacha20-Poly1305** authenticated encryption with additional data (AEAD). 
-- **Norx** authenticated encryption with additional data (AEAD) - this is the default 64-4-1 variant (256-bit key and nonce, 4 rounds)
-- **Blake2b**, **Sha512** cryptographic hash functions,
-- **Argon2i**, a modern key derivation function based on Blake2b. Like 
-scrypt, it is designed to be expensive in both CPU and memory.
-- **Curve25519**-based key exchange and public key encryption,
-- **Ed25519**-based signature functions.
-
-Legacy cryptographic functions include **md5**,  and **rc4** (raw or drop-256 variant). 
+* The last luazen version including all these algorithms is v0.16. It can be accessed [here](https://github.com/philanc/luazen/tree/v0.16).
 
 Luazen borrows heavily from other projects. See the License and credits section below.
 
+### Algorithms
+
+[ChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) is  a widely used authenticated encryption designed by Dan Bernstein. It is used in many places including TLS, SSH and IPsec
+
+[Blake3](https://blake3.io) is a very fast cryptographic hash function that can also be used as a MAC, key derivation function (KDF) and extendable-output function (XOF). See the [BLAKE3
+paper](https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf). It has been designed by Jack O'Connor, Jean-Philippe Aumasson, Samuel Neves and Zooko Wilcox-O'Hearn.
+
+[X25519](https://en.wikipedia.org/wiki/Curve25519)  is an elliptic curve-based DH key-exchange algorithm designed by Dan Bernstein. Ed25519 is a digital signature algorithm based on the same curve.  X25519 and Ed25519 are also used in many protocols including TLS and SSH.
+
+[LZMA](https://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Markov_chain_algorithm) is an excellent compression algorith designed by Igor Pavlov (of 7z fame).
+
 ### API
 ```
---- Compression functions
+--- LZMA Compression
 
 lzma(str)
 	compress string str (LZMA algorithm)
@@ -104,368 +40,169 @@ unlzma(cstr)
 	uncompress string cstr
 	return the uncompressed string or (nil, error message)
 
-blz(str)
-	compress string str (BriefLZ algorithm)
-	return the compressed string or (nil, error message)
 
-unblz(cstr)
-	uncompress string cstr
-	return the uncompressed string or (nil, error message)
+--- Blake3 cryptographic hash
 
-lzf(str)
-	compress string str (LZF algorithm)
-	return the compressed string or (nil, error message)
+blake3(string, [key [, hashlen]])
+	return the blake3 hash of string.
+	if key is non-nil, the function returns a keyed hash of
+	the string (MAC). key must be a 32-byte string.
+	if hashlen is non-null, the function returns a hashlen-long
+	hash. The default hash length is 32 bytes. Any length can be 
+	requested. 
 
-unlzf(cstr)
-	uncompress string cstr
-	return the uncompressed string or (nil, error message)
 
---- Encoding functions
+--- Authenticated encryption
 
-b64encode(str [, n])
-	base64 encode string str. n is an optional integer
-	if n > 0, a newline is inserted every n character in the encoded string
-	if n == 0, no newline is inserted.
-	if not provided, n defaults to 72.
-	return the encoded string
-
-b64decode(bstr)
-	decode base64-encoded string bstr. Even non well-formed encoded strings (ie.
-	strings with no "=" padding) are decoded.
-	all whitespace characters in bstr are ignored.
-	return the encoded string or nil if the string cannot be decoded
-
-b58encode(str)
-	base58 encode string str
-	this uses the same alphabet as bitcoin addresses:
-	"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-	contrary to base64, base58 encodes a string as a long number 
-	written in base58. 
-	Base58 is not intended to be used for long strings, 
-	if #str > 256, str is not encoded and the function raises an error.
-	No newline is inserted in the encoded string.
-	return the encoded string.
-
-b58decode(bstr)
-	decode base58-encoded string bstr
-	return the decoded string or (nil, error message) in case of an 
-	invalid base58 string or if the decoded string is longer than
-	256 bytes.
-
-xor(str, key)
-	return the byte-to-byte xor of string str with string key.
-	the returned string is always the same length as str.
-	if key is longer than str, extra key bytes are ignored.
-	if key is shorter than str, it is repeated as many times 
-	as necessary.
-
---- Authenticated encryption functions (Morus encryption algorithm)
-
-morus_encrypt(encrypt(k, n, m [, ninc [, ad]]) return c
-	k: key string (16 or 32 bytes)
-	n: nonce string (16 bytes)
-	m: message (plain text) string 
-	ninc: optional nonce increment (useful when encrypting a long message
-	     as a sequence of block). The same parameter n can be used for 
-	     the sequence. ninc is added to n for each block, so the actual
-	     nonce used for each block encryption is distinct.
-	     ninc defaults to 0 (the nonce n is used as-is)
-	ad: prefix additional data (AD) (not encrypted, prepended to the 
-	     encrypted message). default to the empty string
-	return encrypted text string c with ad prefix (c includes 
-	the 16-byte MAC, so #c = #ad + #m + 16)
-
-morus_decrypt(k, n, c [, ninc [, adln]]) 
-	return m | (nil, msg)
-	k: key string (16 or 32 bytes)
-	n: nonce string (16 bytes)
-	c: encrypted message string 
+encrypt(key, nonce, plain [, ninc]) => crypted
+	authenticated encryption using Xchacha20 and a Poly1305 MAC
+	key must be a 32-byte string
+	nonce must be a 24-byte string
+	plain is the text to encrypt as a string
+	ninc: optional nonce increment (useful when encrypting a 
+	   long text  as a sequence of block). The same parameter n 
+	   can be used for the sequence. ninc is added to n for each
+	   block, so the actual nonce used for each block encryption 
+	   is distinct.
+	   ninc defaults to 0 (the nonce n is used as-is)
+	return the encrypted text as a string. The encrypted text
+	includes the 16-byte MAC. So  #crypted == #plain + 16
+	
+decrypt(key, nonce, crypted [, ninc]) => plain
+	authenticated decryption - verification of the Poly1305 MAC
+	and decryption with Xcahcha20.
+	key must be a 32-byte string
+	nonce must be a 24-byte string
+	crypted is the text to decrypt as a string
 	ninc: optional nonce increment (see above. defaults to 0)
-	adln: length of the AD prefix (default to 0)
-	return decrypted message m or (nil, errmsg) if MAC is not valid
-
---- Authenticated encryption functions (Ascon-128a encryption algorithm)
-
-ascon_encrypt(encrypt(k, n, m [, ninc [, ad]]) return c
-	k: key string (16 bytes)
-	n: nonce string (16 bytes)
-	m: message (plain text) string 
-	ninc: optional nonce increment (useful when encrypting a long message
-	     as a sequence of block). The same parameter n can be used for 
-	     the sequence. ninc is added to n for each block, so the actual
-	     nonce used for each block encryption is distinct.
-	     ninc defaults to 0 (the nonce n is used as-is)
-	ad: prefix additional data (AD) (not encrypted, prepended to the 
-	     encrypted message). default to the empty string
-	return encrypted text string c with ad prefix (c includes 
-	the 16-byte MAC, so #c = #ad + #m + 16)
-
-ascon_decrypt(k, n, c [, ninc [, adln]]) 
-	return m | (nil, msg)
-	k: key string (16 bytes)
-	n: nonce string (16 bytes)
-	c: encrypted message string 
-	ninc: optional nonce increment (see above. defaults to 0)
-	adln: length of the AD prefix (default to 0)
-	return decrypted message m or (nil, errmsg) if MAC is not valid
-
---- Authenticated encryption functions (Norx encryption algorithm)
-
-norx_encrypt(encrypt(k, n, m [, ninc [, aad [, zad]]]) return c
-	k: key string (32 bytes)
-	n: nonce string (32 bytes)
-	m: message (plain text) string 
-	ninc: optional nonce increment (useful when encrypting a long message
-	     as a sequence of block). The same parameter n can be used for 
-	     the sequence. ninc is added to n for each block, so the actual
-	     nonce used for each block encryption is distinct.
-	     ninc defaults to 0 (the nonce n is used as-is)
-	aad: prefix additional data (AD) (not encrypted, prepended to the 
-	     encrypted message). default to the empty string
-	zad: suffix additional data (not encrypted, appended to the 
-	     encrypted message). default to the empty string
-	return encrypted text string c with aad prefix and zad suffix
-	(c includes the 32-byte MAC, so #c = #aad + #m + 32 + #zad)
-
-norx_decrypt(k, n, c [, ninc [, aadln [, zadln]]]) 
-	    return (m, aad, zad) | (nil, msg)
-	k: key string (32 bytes)
-	n: nonce string (32 bytes)
-	c: encrypted message string 
-	ninc: optional nonce increment (see above. defaults to 0)
-	aadln: length of the AD prefix (default to 0)
-	zadln: length of the AD suffix  (default to 0)
-	return (plain text, aad, zad) or (nil, errmsg) if MAC is not valid
-
---- Authenticated encryption functions ((x)chacha20 encryption algorithm
-    with a poly1305 MAC)
-
-xchacha_encrypt(encrypt(k, n, m [, ninc [, aad]]) return c
-	k: key string (32 bytes)
-	n: nonce string (24 bytes)
-	m: message (plain text) string 
-	ninc: optional nonce increment (useful when encrypting a long message
-	     as a sequence of block). The same parameter n can be used for 
-	     the sequence. ninc is added to n for each block, so the actual
-	     nonce used for each block encryption is distinct.
-	     ninc defaults to 0 (the nonce n is used as-is)
-	aad: prefix additional data (AD) (not encrypted, prepended to the 
-	     encrypted message). default to the empty string
-	return encrypted text string c with aad prefix and zad suffix
-	(c includes the 16-byte MAC, so #c = #aad + #m + 16)
-
-xchacha_decrypt(k, n, c [, ninc [, aadln ]]) 
-	    return (m, aad) | (nil, msg)
-	k: key string (32 bytes)
-	n: nonce string (24 bytes)
-	c: encrypted message string 
-	ninc: optional nonce increment (see above. defaults to 0)
-	aadln: length of the AD prefix (default to 0)
-	return (plain text, aad) or (nil, errmsg) if MAC is not valid
+	return the decrypted plain text as a string or nil if the MAC 
+	verification fails.
 
 
---- Curve25519-based key exchange
+--- Curve25519-based Diffie-Hellman key exchange
 
-x25519_public_key(sk) => pk
+public_key(sk) => pk
 	return the public key associated to a curve25519 secret key
 	sk is the secret key as a 32-byte string
 	pk is the associated public key as a 32-byte string
 
-keypair() has been removed to eliminate hard dependency to 
-the included randombyte() function. It can be replaced with:
-	function keypair()
-		local sk = luazen.randombytes(32)
-		return luazen.ec25519_public_key(sk), sk
-	end
-
-x25519_shared_secret(sk, pk) => ss
-	DH key exchange. Return a common shared secret ss.
-	the shared secret is a 32-byte string. It could be used as-is
-	or passed to a derivation function to generate a temporary
-	session key.
+	To generate a curve25519 key pair (sk, pk), do:
+		sk = randombytes(32)
+		pk = public_key(sk)
+	
+key_exchange(sk, pk) => k
+	DH key exchange. Return a session key k used to encrypt 
+	or decrypt a text.
 	sk is the secret key of the party invoking the function 
 	("our secret key"). 
 	pk is the public key of the other party 
 	("their public key").
-	sk, pk and ss are 32-byte strings
+	sk, pk and k are 32-byte strings
 
+x25519(s, P1) => s.P1
+	raw scalar multiplication over curve25519
+	Note: usually this function should not be used directly.
+	For DH key exchange, the key_exchange() function above 
+	should be used instead.
+	--
+	s: a scalar as a 32-byte string
+	P1: a curve point as a 32-byte string
+	return the product s.P1 as a 32-byte string
 
---- Ed25519 signature
+	
+--- Ed25519 signature based on SHA512 (compatible with 
+    the original NaCl signature functions) 
+    Note that contrary to the sign() and sign_open() NaCl functions, 
+    the signature is not prepended to the text ("detached signature")
 
-x25519_sign_public_key(sk) => pk
+sha512(m) => digest
+	return the sha512 hash of message m as a 64-byte binary string
+
+ed25519_public_key(sk)
 	return the public key associated to a secret key
 	sk is the secret key as a 32-byte string
 	pk is the associated public key as a 32-byte string
 
-sign_keypair() has been removed to eliminate hard dependency to 
-the included randombyte() function. It can be replaced with:
-	function keypair()
-		local sk = luazen.randombytes(32)
-		return luazen.ed25519_public_key(sk), sk
-	end
+	Note: curve25519 keypairs or keys generated by sign_public_key() 
+	cannot be used for the ed25519_* signature functions.
+	To generate a signature key pair (sk, pk), do:
+		sk = randombytes(32)
+		pk = ed25519_public_key(sk)
 
-x25519_sign(sk, pk, text) => signed text
+ed25519_sign(sk, pk, text) => sig
 	sign a text with a secret key
 	sk is the secret key as a 32-byte string
-	pk is the public key as a 32-byte string
 	text is the text to sign as a string
-	Return the signed text which contains  a 64-byte signature
-	followed by the original text.
+	Return the text signature as a 64-byte string.
 
-x25519_sign_open(stext, pk) => text
+ed25519_check(sig, pk, text) => is_valid
 	check a text signature with a public key
-	stext is the signed text to verify
+	sig is the signature to verify, as a 64-byte string
 	pk is the public key as a 32-byte string
-	if the signature is valid, return the original text, or (nil, errmsg)
-	
-	Note: curve25519 key pairs cannot be used for ed25519 signature. 
-	
-x25519_sha512(s) => hash
-	return the sha512 hash of a string (as a 64-byte binary string)
+	text is the signed text
+	Return a boolean indicating if the signature is valid or not
 
-
---- Blake2b cryptographic hash
-
-blake2b(text [, digest_size [, key]]) => digest
-	compute the hash of string 'text'.
-	'digest_size' is the optional length of the expected digest. If
-	provided, it must be an integer between 1 and 64. It defaults to 64.
-	'key' is an optional key allowing to use blake2b as a MAC function.
-	If provided, key length must be between 1 and 64. 
-	The default is no key.
-	Returns the hash as a 'digest_size'-long string
-
-
---- Argon2i password derivation 
-
-argon2i(pw, salt, nkb, niter) => k
-	compute a key given a password and some salt
-	This is a password key derivation function similar to scrypt.
-	It is intended to make derivation expensive in both CPU and memory.
-	pw: the password string
-	salt: some entropy as a string (typically 16 bytes)
-	nkb:  number of kilobytes used in RAM (as large as possible)
-	niter: number of iterations (as large as possible, >= 10)
-	Return k, a key string (32 bytes).
-
-	For example: on a CPU i5 M430 @ 2.27 GHz laptop,
-	with nkb=100000 (100MB) and niter=10, the derivation takes ~ 1.8 sec
-	
-	Note: this implementation has no threading support, so no parallel 
-	execution.
-
-
---- Legacy cryptographic functions
-
-rc4raw(str, key) => encrypted (or decrypted) string
-	encrypt (or decrypt, as rc4 is symmetric) string str with string key
-	key length must be 16 (or an error is raised)
-	return the encrypted string
-	see http://en.wikipedia.org/wiki/RC4 for raw rc4 weaknesses
-	rc4(), a rc4-drop implementation, should be used instead for most uses
-
-rc4(str, key) => encrypted (or decrypted) string
-	this is a rc4-drop encryption function with a 256-byte drop
-	(ie. the rc4 state is initialized by "encrypting" a 256-byte block of
-	zero bytes before starting the encyption of the string)
-	arguments and return are the same as rc4raw()
-	key length must be 16 (or an error is raised)
-
-md5(str) => digest
-	return the md5 hash of string str as a 16-byte binary string
-	(no hex encoding)
-
-
---- Misc functions
+--- Utilities
 
 randombytes(n)
-	return a random string of length n generated by the OS RNG 
-	(/dev/urandom on Linux, or CryptGenRandom() on Windows)
+	return a string containing n random bytes
+
+b64encode(str [, linelen])
+	str is the string to base64-enccode
+	linelen is an optional output line length
+	(should be be multiple of 4). default is 72.
+	if linelen == 0, no '\n' is inserted.
+
+b64decode(str)
+	str is the base64-encoded string to decode
+	return the decoded string, or nil if str contains 
+	an invalid character (whitespaces and newlines are ignored)
 
 
-```
-
-### Modular build
-
-Constants can be defined at compile time to include the corresponding groups of functions in the luazen library (check the Makefile and src.luazen/luazen.c). It allows to build a smaller luazen library containing only the required functions.
-
-The constants and the corresponding groups of functions are listed below:
-
-```
-  BASE64     Base64 encode/decode
-  BASE58     Base58 encode/decode
-  BLZ        BriefLZ compress/uncompress
-  LZF        LZF compress/uncompress
-  LZMA       LZMA compress/uncompress
-  NORX       Norx AEAD encrypt/decrypt
-  CHACHA     Xchacha20 AEAD encrypt/decrypt
-  RC4        RC4 encrypt/decrypt
-  MD5        MD5 hash
-  BLAKE      Blake2b hash, Argon2i key derivation
-  SHA2       SHA2-512 hash
-  X25519     Ec25519 key exchange and ed25519 signature functions
-  MORUS      Morus AEAD encrypt/decrypt
-  ASCON      Ascon128a AEAD encrypt/decrypt
 
 ```
 
-The constants are defined in the Makefile in the variable `FUNCS`. 
+(1) see section *Key derivation* in the the [BLAKE3 paper](https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf)
 
-The provided Makefile defines all the constants, so the default build includes all the functions
 
-A specific build containing for example Chacha20 encryption, SHA-512 hash and curve 25519 public key crypto can be defined with:
-```
-FUNCS= -DCHACHA -DSHA2 -DX25519
-```
+## Building 
 
-Once the FUNCS variable is set in the Makefile, the library is built with:
-```
-make
-```
+Adjust the Makefile according to your Lua installation (set the LUADIR variable). 
 
-Simple tests of the included functions can be run with: 
+Targets:
 ```
-make test
+	make          -- build luazen.so
+	make test     -- build luazen.so if needed, 
+                         then run test_luazen.lua
+	make clean
 ```
 
-Rockspec files are also provided to build the current luazen version (v0.15) and the last github version with Luarocks:
+An alternative Lua installation can be specified:
 ```
-	# build version 0.15:
-	luarocks build luazen-0.15-1.rockspec
+	make LUA=/path/to/lua LUAINC=/path/to/lua_include_dir test
+```
+
+Rockspec files are also provided to build the previous luazen version (v0.16) and the last github version with Luarocks:
+```
+	# build version 0.16:
+	luarocks build luazen-0.16.rockspec
 	
 	# build last github version 
 	luarocks build luazen-scm-1.rockspec
 ```
-
-The provided rockspec files build luazen with all functions included. The list of included functions can be adjusted by modifyng the following element in the rockspec file:
-``                
-		defines = {
-                        "_7ZIP_ST",
-                        "BASE64", "LZMA", "MD5", "BLAKE", "X25519", "MORUS", "CHACHA",
-                        "BASE58", "BLZ", "LZF", "NORX", "ASCON", "RC4"
-                }
-``
-
-The `"_7ZIP_ST"` definition must be kept. Any other definition can be removed to remove the correponding group of functions in luazen.
 
 
 ### License and credits
 
 Luazen is distributed under the terms of the MIT License. 
 
-The luazen library includes some code from various authors (see src/):
-- brieflz compression by Joergen Ibsen, BSD-like - see https://github.com/jibsen/brieflz
-- lzf functions by  Marc Alexander Lehmann (BSD, see src/lzf* headers)
-- blake2b, argon2i and xchacha20-poly1305 from Loup Vaillant's Monocypher library. Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
-- morus from the reference implementation by Hongjun Wu and Tao Huang - see https://personal.ntu.edu.sg/wuhj/research/caesar/caesar.html
-- norx from the reference implementation by Samuel Neves and Philipp Jovanovic (public domain or CC0) - see https://github.com/norx/resources
-- x25519 (ec25519 DH secret exchange and ed25519 signature from tweetnacl, by Dan Bernstein, Tanja Lange et al. (public domain) - see http://nacl.cr.yp.to/  
+- The luazen library is largely based on the Monocypher library (xchacha, x25519 DH, sha512 and ed25519 signature) Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
+- blake3: luazen is based or the [C portable version](https://github.com/BLAKE3-team/BLAKE3/tree/master/c) of the reference Blake3 implementation
 - base64 functions by Luiz Henrique de Figueiredo (public domain)
-- base58 functions by Luke Dashjr (MIT)
 - md5 by Cameron Rich (BSD)
 
-See [src/crypto_licenses.md](https://github.com/philanc/luazen/blob/master/src/crypto_licenses.md).
+See the licenses or public domain dedication in the source files.
 
-(the code from these sources has been more or less modified - all bugs are probably mine!)
+The code from these sources has been more or less modified - all bugs are probably mine!
 
-Copyright (c) 2019  Phil Leblanc 
+Copyright (c) 2022  Phil Leblanc 

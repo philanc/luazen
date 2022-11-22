@@ -4,12 +4,13 @@ source = {
    url = "git://github.com/philanc/luazen",
 }
 description = {
-   summary = "Simple compression, encoding and cryptographic functions.",
+   summary = "Simple compression and cryptographic functions.",
    detailed = [[
-	  A small library with various encoding functions (base58, base64), 
-	  compression functions (LZMA, BriefLZ, LZF), authenticated encryption (Morus, XChacha20/Poly1305, Norx), 
-	  cryptographic hash (Blake2b, SHA-512), key derivation function (Argon2i),  curve25519  and ed25519 public key functions, 
-	  and legacy cryptographic functions (MD5, RC4). 
+	  A small library with various encoding functions (base64), 
+	  compression functions (LZMA), authenticated encryption
+	  (XChacha20/Poly1305), cryptographic hash (Blake3, 
+	  SHA-512, md5), ec25519 key exchange and ed25519 digital
+	  signature functions. 
    ]],
    homepage = "https://github.com/philanc/luazen",
    license = "MIT",
@@ -25,37 +26,30 @@ build = {
    modules = {
       luazen = {
 		sources = { 
-			"src/ascon.c",
-			"src/base58.c",
-			"src/base64.c",
-			"src/blake2b.c",
-			"src/blz.c",
-			"src/chacha.c",
 			"src/luazen.c",
-			"src/lzf.c",
+			"src/md5.c",
 			"src/lzma/Alloc.c",
 			"src/lzma/LzFind.c",
 			"src/lzma/LzmaDec.c",
 			"src/lzma/LzmaEnc.c",
 			"src/lzma/LzmaLib.c",
-			"src/lzma.c",
-			"src/md5.c",
-			"src/morus.c",
-			"src/norx.c",
-			"src/random.c",
-			"src/rc4.c",
-			"src/sha2.c",
-			"src/x25519.c",
-			"src/xor.c",
+			"src/lzma/lualzma.c",
+			"src/blake3/blake3.c",
+			"src/blake3/blake3_dispatch.c",
+			"src/blake3/blake3_portable.c",
+			"src/blake3/luablake3.c",
+			"src/mono/monocypher.c",
+			"src/mono/monocypher-ed25519.c",
+			"src/mono/randombytes.c",
+			"src/mono/luamonocypher.c"
 		},
 		incdir = {
-			"src", "src/lzma"
+			"src", "src/lzma", "src/blake3", "src/mono", 
 		},
 		defines = {
 			"_7ZIP_ST",
-			"BASE64", "LZMA", "MD5", "BLAKE", "X25519", "MORUS",
-			"CHACHA", "BASE58", "BLZ", "LZF", "NORX", "ASCON", 
-			"RC4"
+			-DBLAKE3_NO_SSE2 -DBLAKE3_NO_SSE41 
+			-DBLAKE3_NO_AVX2 -DBLAKE3_NO_AVX512
 		}
 	  }
    },

@@ -3,35 +3,15 @@
 /*
 luazen crypto, encoding and compression library
 
-To facilitate custom builds, functions are included only if a related 
-constant is defined (see function llib_init() below). 
-
-The following constants can be defined by uncommenting lines below 
-or with -Dname arguments in the compile command (see the Makefile)
-
 */
 
-// #define BASE64     Base64 encode/decode
-// #define BASE58     Base58 encode/decode
-// #define BLZ        BriefLZ compress/uncompress
-// #define LZF        LZF compress/uncompress
-// #define LZMA       LZMA compress/uncompress
-// #define NORX       Norx AEAD encrypt/decrypt
-// #define CHACHA     Xchacha20 AEAD encrypt/decrypt (with Poly1305 MAC)
-// #define RC4        RC4 encrypt/decrypt
-// #define MD5        MD5 hash
-// #define BLAKE      Blake2b hash, Argon2i key derivation
-// #define SHA2       SHA2-512 hash
-// #define X25519     Ec25519 key exchange and ed25519 signature functions
-// #define MORUS      Morus AEAD encrypt/decrypt
-// #define ASCON      Ascon128a AEAD encrypt/decrypt
 
 
 // ---------------------------------------------------------------------
 // lua binding
 
 #define LIBNAME luazen
-#define VERSION "luazen-0.16"
+#define VERSION "luazen-2.0"
 
 #include <assert.h>
 
@@ -102,97 +82,30 @@ static void llib_init() {
 	// luazen function declarations - comment APPEND lines to 
 	// remove functions from the luazen build
 	//
-	// randombytes and xor are included by default
-	APPEND(xor)	
-	APPEND(randombytes)
+	APPEND(md5)
 	//
-#ifdef BASE64
-	// from base64.c
-	APPEND(b64encode)
-	APPEND(b64decode)
-#endif
-	//
-#ifdef BASE58
-	// from base58.c
-	APPEND(b58encode)
-	APPEND(b58decode)
-#endif
-	//
-#ifdef BLZ
-	// from blz.c
-	APPEND(blz)
-	APPEND(unblz)
-#endif
-	//
-#ifdef LZF
-	// from lzf.c
-	APPEND(lzf)
-	APPEND(unlzf)
-#endif
-	//
-#ifdef LZMA
-	// from lzma.c
+	//from lzma
 	APPEND(lzma)
 	APPEND(unlzma)
-#endif
 	//
-#ifdef NORX
-	// from norx.c
-	APPEND(norx_encrypt)
-	APPEND(norx_decrypt)
-#endif
+	// from blake3
+	APPEND(blake3)
 	//
-#ifdef CHACHA
-	// from chacha.c
-	APPEND(xchacha_encrypt)
-	APPEND(xchacha_decrypt)
-#endif
-	//
-#ifdef RC4
-	// from rc4.c
-	APPEND(rc4)
-	APPEND(rc4raw)
-#endif
-	//
-#ifdef MD5
-	// from md5.c
-	APPEND(md5)
-#endif
-	//
-#ifdef BLAKE
-	// from blake2b.c
-	APPEND(blake2b)
-	APPEND(argon2i)
-#endif
-	//
-#ifdef SHA2
-	// from sha2.c
-	APPEND(sha512)
-#endif
-	//
-#ifdef X25519 
-	// from x25519.c
+	// from mono
+	APPEND(randombytes)
+	APPEND(b64encode)
+	APPEND(b64decode)
+	APPEND(encrypt)
+	APPEND(decrypt)
+	//~ APPEND(blake2b)
+	//~ APPEND(argon2i)
 	APPEND(x25519_public_key)
-	APPEND(x25519_shared_secret)
-	APPEND(x25519_sign_public_key)
-	APPEND(x25519_sign)
-	APPEND(x25519_sign_open)
-	APPEND(x25519_sha512)	
-#endif
-	//
-#ifdef MORUS
-	// from morus.c
-	APPEND(morus_encrypt)
-	APPEND(morus_decrypt)
-	APPEND(morus_xof)
-#endif
-	//
-#ifdef ASCON
-	// from ascon.c
-	APPEND(ascon_encrypt)
-	APPEND(ascon_decrypt)
-#endif
-	//
+	APPEND(key_exchange)
+	APPEND(x25519)
+	APPEND(ed25519_public_key)
+	APPEND(ed25519_sign)
+	APPEND(ed25519_check)
+	APPEND(sha512)	
 
 	//
 } //llib_init()
