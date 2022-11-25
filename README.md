@@ -161,6 +161,14 @@ ed25519_check(sig, pk, text) => is_valid
 	text is the signed text
 	Return a boolean indicating if the signature is valid or not
 
+
+--- Legacy cryptographic functions
+
+md5(str) => digest
+	return the md5 hash of string str as a 16-byte binary string
+	(no hex encoding)
+
+
 --- Utilities
 
 randombytes(n)
@@ -176,8 +184,6 @@ b64decode(str)
 	str is the base64-encoded string to decode
 	return the decoded string, or nil if str contains 
 	an invalid character (whitespaces and newlines are ignored)
-
-
 
 ```
 
@@ -213,6 +219,7 @@ Rockspec files are also provided to build the previous luazen version (v0.16) an
 Luazen is distributed under the terms of the MIT License. 
 
 - The luazen library is largely based on the Monocypher library (xchacha, blake2b, argon2i,  x25519 DH, sha512 and ed25519 signature) Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
+- lzma compression from the LZMA SDK, Igor Pavlov
 - base64 functions by Luiz Henrique de Figueiredo (public domain)
 - md5 by Cameron Rich (BSD)
 
