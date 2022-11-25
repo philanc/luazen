@@ -135,6 +135,55 @@ int ll_decrypt(lua_State *L) {
 	return 1;
 } // ll_decrypt()
 
+//----------------------------------------------------------------------
+// blake2b hash and argon2i KDF
+
+int ll_blake2b(lua_State *L) {
+	// compute the blake2b hash of a string
+	// lua api:  blake2b(m, diglen, key) return digest
+	// m: the string to be hashed
+	// diglen: the optional length of the digest to be computed 
+	//    (between 1 and 64) - default value is 64
+	// key: an optional secret key, allowing blake2b to work as a MAC 
+	//    (if provided, key length must be between 1 and 64)
+	//    default is no key	
+	// digest: the blake2b hash (a <diglen>-byte string)
+	size_t mln; 
+	size_t keyln = 0; 
+	char digest[64];
+	const char *m = luaL_checklstring (L, 1, &mln);
+	int digln = luaL_optinteger(L, 2, 64);
+	const char *key = luaL_optlstring(L, 3, NULL, &keyln);
+	if ((keyln < 0)||(keyln > 64)) LERR("bad key size");
+	if ((digln < 1)||(digln > 64)) LERR("bad digest size");
+	crypto_blake2b_general(digest, digln, key, keyln, m, mln);
+	lua_pushlstring (L, digest, digln); 
+	return 1;
+}// ll_blake2b
+
+int ll_argon2i(lua_State *L) {
+	// Lua API: argon2i(pw, salt, nkb, niters) => k
+	// pw: the password string
+	// salt: some entropy as a string (typically 16 bytes)
+	// nkb:  number of kilobytes used in RAM (as large as possible)
+	// niters: number of iterations (as large as possible, >= 10)
+	//  return k, a key string (32 bytes)
+	size_t pwln, saltln, kln, mln;
+	const char *pw = luaL_checklstring(L,1,&pwln);
+	const char *salt = luaL_checklstring(L,2,&saltln);	
+	int nkb = luaL_checkinteger(L,3);	
+	int niters = luaL_checkinteger(L,4);	
+	unsigned char k[32];
+	size_t worksize = nkb * 1024;
+	unsigned char *work= lua_newuserdata(L, worksize); 
+	crypto_argon2i_general(	
+		k, 32, work, nkb, niters,
+		pw, pwln, salt, saltln, 
+		"", 0, "", 0 	// optional key and additional data
+	);
+	lua_pushlstring (L, k, 32); 
+	return 1;
+} // ll_argon2i()
 
 //----------------------------------------------------------------------
 // key exchange (ec25519)

@@ -11,7 +11,7 @@ luazen crypto, encoding and compression library
 // lua binding
 
 #define LIBNAME luazen
-#define VERSION "luazen-2.0"
+#define VERSION "luazen-2.1"
 
 #include <assert.h>
 
@@ -88,17 +88,14 @@ static void llib_init() {
 	APPEND(lzma)
 	APPEND(unlzma)
 	//
-	// from blake3
-	APPEND(blake3)
-	//
 	// from mono
 	APPEND(randombytes)
 	APPEND(b64encode)
 	APPEND(b64decode)
 	APPEND(encrypt)
 	APPEND(decrypt)
-	//~ APPEND(blake2b)
-	//~ APPEND(argon2i)
+	APPEND(blake2b)
+	APPEND(argon2i)
 	APPEND(x25519_public_key)
 	APPEND(key_exchange)
 	APPEND(x25519)

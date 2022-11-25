@@ -3,13 +3,13 @@
 # luazen
 
 [Luazen](https://github.com/philanc/luazen) is a small library with various compression, encoding and 
-cryptographic functions for Lua: LZMA compression, base64 encoding, Chacha20 authenticated encryption, curve25519 key exchange, ed25519 signature, md5, sha512 and blake3 hash.
+cryptographic functions for Lua: LZMA compression, base64 encoding, Chacha20 authenticated encryption, curve25519 key exchange, ed25519 signature, md5, sha512 and blake2b hash and argon2i KDF.
 
 All the functions work on strings, there is no stream or chunked complex interface. All the C code is included. No external dependencies.
 
 ### Recent changes
 
-November-2022  version 2.0
+November-2022  version 2.1
 
 * The luazen library has been seriously streamlined. Algorithms that are either legacy, deprecated, not widely used, or that can be replaced with a [pure Lua implementation](https://github.com/philanc/plc) have been retired (ascon, base58, blz, lzf, morus, norx, rc4)
 
@@ -19,10 +19,11 @@ Luazen borrows heavily from other projects. See the License and credits section 
 
 ### Algorithms
 
-[ChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) is  a widely used authenticated encryption designed by Dan Bernstein. It is used in many places including TLS, SSH and IPsec
+[ChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) is  a widely used authenticated encryption designed by Dan Bernstein. It is used in many places including TLS, SSH and IPsec.
 
-[Blake3](https://blake3.io) is a very fast cryptographic hash function that can also be used as a MAC, key derivation function (KDF) and extendable-output function (XOF). See the [BLAKE3
-paper](https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf). It has been designed by Jack O'Connor, Jean-Philippe Aumasson, Samuel Neves and Zooko Wilcox-O'Hearn.
+[Blake2b](https://en.wikipedia.org/wiki/BLAKE_(hash_function)) is a cryptographic hash function (RFC 7693) designed by Jean-Philippe Aumasson, Samuel Neves, Zooko Wilcox-O'Hearn, and Christian Winnerlein.  It is as secure as SHA-3, and as fast as MD5.
+
+[Argon2i](https://en.wikipedia.org/wiki/Argon2) is a modern key derivation function (RFC 9106). It was created by Alex Biryukov, Daniel Dinu, and Dmitry Khovratovich. It is based on Blake2b. Like scrypt, it is designed to be expensive in both CPU and memory.
 
 [X25519](https://en.wikipedia.org/wiki/Curve25519)  is an elliptic curve-based DH key-exchange algorithm designed by Dan Bernstein. Ed25519 is a digital signature algorithm based on the same curve.  X25519 and Ed25519 are also used in many protocols including TLS and SSH.
 
@@ -41,15 +42,33 @@ unlzma(cstr)
 	return the uncompressed string or (nil, error message)
 
 
---- Blake3 cryptographic hash
+--- Blake2b cryptographic hash
 
-blake3(string, [key [, hashlen]])
-	return the blake3 hash of string.
-	if key is non-nil, the function returns a keyed hash of
-	the string (MAC). key must be a 32-byte string.
-	if hashlen is non-null, the function returns a hashlen-long
-	hash. The default hash length is 32 bytes. Any length can be 
-	requested. 
+blake2b(text, [digest_size [, key]]) => digest
+	digest_size is the optional length of the expected digest. 
+	If provided, it must be an integer between 1 and 64. 
+	It defaults to 64.
+	key is an optional key allowing to use blake2b as a MAC function.
+	If provided, key is a string with a length that must be between 
+	1 and 64. The default is no key.
+	The returned digest is a binary string. Default length is 64 bytes.
+
+
+--- Argon2i password derivation 
+
+argon2i(pw, salt, nkb, niter) => k
+	compute a key given a password and some salt
+	This is a password key derivation function similar to scrypt.
+	It is intended to make derivation expensive in both CPU and memory.
+	pw: the password string
+	salt: some entropy as a string (typically 16 bytes)
+	nkb:  number of kilobytes used in RAM (as large as possible)
+	niter: number of iterations (as large as possible, >= 10)
+	Return k, a key string (32 bytes).
+
+	For example: on a i5-8250U CPU @ 1.60GHz laptop,
+	with nkb=100000 (100MB) and niter=10, the derivation takes close
+	to 1 sec.
 
 
 --- Authenticated encryption
@@ -193,8 +212,7 @@ Rockspec files are also provided to build the previous luazen version (v0.16) an
 
 Luazen is distributed under the terms of the MIT License. 
 
-- The luazen library is largely based on the Monocypher library (xchacha, x25519 DH, sha512 and ed25519 signature) Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
-- blake3: luazen is based or the [C portable version](https://github.com/BLAKE3-team/BLAKE3/tree/master/c) of the reference Blake3 implementation
+- The luazen library is largely based on the Monocypher library (xchacha, blake2b, argon2i,  x25519 DH, sha512 and ed25519 signature) Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
 - base64 functions by Luiz Henrique de Figueiredo (public domain)
 - md5 by Cameron Rich (BSD)
 

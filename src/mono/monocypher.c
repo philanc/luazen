@@ -1,7 +1,4 @@
-// luazen:  
-//	code from Monocypher version 3.1.3	
-//	removed: blake2b, argon2i, sign/check with blake2b - 221121 
-// -------
+// Monocypher version 3.1.3
 //
 // This file is dual-licensed.  Choose whichever licence you want from
 // the two licences listed below.
@@ -453,9 +450,524 @@ void crypto_poly1305(u8     mac[16],  const u8 *message,
     crypto_poly1305_final (&ctx, mac);
 }
 
-// --------------------------
-// blake2b
-// argon2i
+////////////////
+/// BLAKE2 b ///
+////////////////
+static const u64 iv[8] = {
+    0x6a09e667f3bcc908, 0xbb67ae8584caa73b,
+    0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
+    0x510e527fade682d1, 0x9b05688c2b3e6c1f,
+    0x1f83d9abfb41bd6b, 0x5be0cd19137e2179,
+};
+
+static void blake2b_compress(crypto_blake2b_ctx *ctx, int is_last_block)
+{
+    static const u8 sigma[12][16] = {
+        {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
+        { 14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3 },
+        { 11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4 },
+        {  7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8 },
+        {  9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13 },
+        {  2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9 },
+        { 12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11 },
+        { 13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10 },
+        {  6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5 },
+        { 10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13,  0 },
+        {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
+        { 14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3 },
+    };
+
+    // increment input offset
+    u64   *x = ctx->input_offset;
+    size_t y = ctx->input_idx;
+    x[0] += y;
+    if (x[0] < y) {
+        x[1]++;
+    }
+
+    // init work vector
+    u64 v0 = ctx->hash[0];  u64 v8  = iv[0];
+    u64 v1 = ctx->hash[1];  u64 v9  = iv[1];
+    u64 v2 = ctx->hash[2];  u64 v10 = iv[2];
+    u64 v3 = ctx->hash[3];  u64 v11 = iv[3];
+    u64 v4 = ctx->hash[4];  u64 v12 = iv[4] ^ ctx->input_offset[0];
+    u64 v5 = ctx->hash[5];  u64 v13 = iv[5] ^ ctx->input_offset[1];
+    u64 v6 = ctx->hash[6];  u64 v14 = iv[6] ^ (u64)~(is_last_block - 1);
+    u64 v7 = ctx->hash[7];  u64 v15 = iv[7];
+
+    // mangle work vector
+    u64 *input = ctx->input;
+#define BLAKE2_G(a, b, c, d, x, y)      \
+    a += b + x;  d = rotr64(d ^ a, 32); \
+    c += d;      b = rotr64(b ^ c, 24); \
+    a += b + y;  d = rotr64(d ^ a, 16); \
+    c += d;      b = rotr64(b ^ c, 63)
+#define BLAKE2_ROUND(i)                                                 \
+    BLAKE2_G(v0, v4, v8 , v12, input[sigma[i][ 0]], input[sigma[i][ 1]]); \
+    BLAKE2_G(v1, v5, v9 , v13, input[sigma[i][ 2]], input[sigma[i][ 3]]); \
+    BLAKE2_G(v2, v6, v10, v14, input[sigma[i][ 4]], input[sigma[i][ 5]]); \
+    BLAKE2_G(v3, v7, v11, v15, input[sigma[i][ 6]], input[sigma[i][ 7]]); \
+    BLAKE2_G(v0, v5, v10, v15, input[sigma[i][ 8]], input[sigma[i][ 9]]); \
+    BLAKE2_G(v1, v6, v11, v12, input[sigma[i][10]], input[sigma[i][11]]); \
+    BLAKE2_G(v2, v7, v8 , v13, input[sigma[i][12]], input[sigma[i][13]]); \
+    BLAKE2_G(v3, v4, v9 , v14, input[sigma[i][14]], input[sigma[i][15]])
+
+#ifdef BLAKE2_NO_UNROLLING
+    FOR (i, 0, 12) {
+        BLAKE2_ROUND(i);
+    }
+#else
+    BLAKE2_ROUND(0);  BLAKE2_ROUND(1);  BLAKE2_ROUND(2);  BLAKE2_ROUND(3);
+    BLAKE2_ROUND(4);  BLAKE2_ROUND(5);  BLAKE2_ROUND(6);  BLAKE2_ROUND(7);
+    BLAKE2_ROUND(8);  BLAKE2_ROUND(9);  BLAKE2_ROUND(10); BLAKE2_ROUND(11);
+#endif
+
+    // update hash
+    ctx->hash[0] ^= v0 ^ v8;   ctx->hash[1] ^= v1 ^ v9;
+    ctx->hash[2] ^= v2 ^ v10;  ctx->hash[3] ^= v3 ^ v11;
+    ctx->hash[4] ^= v4 ^ v12;  ctx->hash[5] ^= v5 ^ v13;
+    ctx->hash[6] ^= v6 ^ v14;  ctx->hash[7] ^= v7 ^ v15;
+}
+
+static void blake2b_set_input(crypto_blake2b_ctx *ctx, u8 input, size_t index)
+{
+    if (index == 0) {
+        ZERO(ctx->input, 16);
+    }
+    size_t word = index >> 3;
+    size_t byte = index & 7;
+    ctx->input[word] |= (u64)input << (byte << 3);
+}
+
+void crypto_blake2b_general_init(crypto_blake2b_ctx *ctx, size_t hash_size,
+                                 const u8           *key, size_t key_size)
+{
+    // initial hash
+    COPY(ctx->hash, iv, 8);
+    ctx->hash[0] ^= 0x01010000 ^ (key_size << 8) ^ hash_size;
+
+    ctx->input_offset[0] = 0;         // beginning of the input, no offset
+    ctx->input_offset[1] = 0;         // beginning of the input, no offset
+    ctx->hash_size       = hash_size; // remember the hash size we want
+    ctx->input_idx       = 0;
+
+    // if there is a key, the first block is that key (padded with zeroes)
+    if (key_size > 0) {
+        u8 key_block[128] = {0};
+        COPY(key_block, key, key_size);
+        // same as calling crypto_blake2b_update(ctx, key_block , 128)
+        load64_le_buf(ctx->input, key_block, 16);
+        ctx->input_idx = 128;
+    }
+}
+
+void crypto_blake2b_init(crypto_blake2b_ctx *ctx)
+{
+    crypto_blake2b_general_init(ctx, 64, 0, 0);
+}
+
+void crypto_blake2b_update(crypto_blake2b_ctx *ctx,
+                           const u8 *message, size_t message_size)
+{
+    // Align ourselves with block boundaries
+    // The block that may result is not compressed yet
+    size_t aligned = MIN(align(ctx->input_idx, 128), message_size);
+    FOR (i, 0, aligned) {
+        blake2b_set_input(ctx, *message, ctx->input_idx);
+        ctx->input_idx++;
+        message++;
+        message_size--;
+    }
+
+    // Process the message block by block
+    // The last block is not compressed yet.
+    size_t nb_blocks = message_size >> 7;
+    FOR (i, 0, nb_blocks) {
+        if (ctx->input_idx == 128) {
+            blake2b_compress(ctx, 0);
+        }
+        load64_le_buf(ctx->input, message, 16);
+        message += 128;
+        ctx->input_idx = 128;
+    }
+    message_size &= 127;
+
+    // Fill remaining bytes (not the whole buffer)
+    // The last block is never fully filled
+    FOR (i, 0, message_size) {
+        if (ctx->input_idx == 128) {
+            blake2b_compress(ctx, 0);
+            ctx->input_idx = 0;
+        }
+        blake2b_set_input(ctx, message[i], ctx->input_idx);
+        ctx->input_idx++;
+    }
+}
+
+void crypto_blake2b_final(crypto_blake2b_ctx *ctx, u8 *hash)
+{
+    // Pad the end of the block with zeroes
+    FOR (i, ctx->input_idx, 128) {
+        blake2b_set_input(ctx, 0, i);
+    }
+    blake2b_compress(ctx, 1); // compress the last block
+    size_t nb_words = ctx->hash_size >> 3;
+    store64_le_buf(hash, ctx->hash, nb_words);
+    FOR (i, nb_words << 3, ctx->hash_size) {
+        hash[i] = (ctx->hash[i >> 3] >> (8 * (i & 7))) & 0xff;
+    }
+    WIPE_CTX(ctx);
+}
+
+void crypto_blake2b_general(u8       *hash   , size_t hash_size,
+                            const u8 *key    , size_t key_size,
+                            const u8 *message, size_t message_size)
+{
+    crypto_blake2b_ctx ctx;
+    crypto_blake2b_general_init(&ctx, hash_size, key, key_size);
+    crypto_blake2b_update(&ctx, message, message_size);
+    crypto_blake2b_final(&ctx, hash);
+}
+
+void crypto_blake2b(u8 hash[64], const u8 *message, size_t message_size)
+{
+    crypto_blake2b_general(hash, 64, 0, 0, message, message_size);
+}
+
+static void blake2b_vtable_init(void *ctx) {
+    crypto_blake2b_init(&((crypto_sign_ctx*)ctx)->hash);
+}
+static void blake2b_vtable_update(void *ctx, const u8 *m, size_t s) {
+    crypto_blake2b_update(&((crypto_sign_ctx*)ctx)->hash, m, s);
+}
+static void blake2b_vtable_final(void *ctx, u8 *h) {
+    crypto_blake2b_final(&((crypto_sign_ctx*)ctx)->hash, h);
+}
+const crypto_sign_vtable crypto_blake2b_vtable = {
+    crypto_blake2b,
+    blake2b_vtable_init,
+    blake2b_vtable_update,
+    blake2b_vtable_final,
+    sizeof(crypto_sign_ctx),
+};
+
+////////////////
+/// Argon2 i ///
+////////////////
+// references to R, Z, Q etc. come from the spec
+
+// Argon2 operates on 1024 byte blocks.
+typedef struct { u64 a[128]; } block;
+
+static void wipe_block(block *b)
+{
+    volatile u64* a = b->a;
+    ZERO(a, 128);
+}
+
+// updates a BLAKE2 hash with a 32 bit word, little endian.
+static void blake_update_32(crypto_blake2b_ctx *ctx, u32 input)
+{
+    u8 buf[4];
+    store32_le(buf, input);
+    crypto_blake2b_update(ctx, buf, 4);
+    WIPE_BUFFER(buf);
+}
+
+static void load_block(block *b, const u8 bytes[1024])
+{
+    load64_le_buf(b->a, bytes, 128);
+}
+
+static void store_block(u8 bytes[1024], const block *b)
+{
+    store64_le_buf(bytes, b->a, 128);
+}
+
+static void copy_block(block *o,const block*in){FOR(i,0,128)o->a[i] = in->a[i];}
+static void  xor_block(block *o,const block*in){FOR(i,0,128)o->a[i]^= in->a[i];}
+
+// Hash with a virtually unlimited digest size.
+// Doesn't extract more entropy than the base hash function.
+// Mainly used for filling a whole kilobyte block with pseudo-random bytes.
+// (One could use a stream cipher with a seed hash as the key, but
+//  this would introduce another dependency —and point of failure.)
+static void extended_hash(u8       *digest, u32 digest_size,
+                          const u8 *input , u32 input_size)
+{
+    crypto_blake2b_ctx ctx;
+    crypto_blake2b_general_init(&ctx, MIN(digest_size, 64), 0, 0);
+    blake_update_32            (&ctx, digest_size);
+    crypto_blake2b_update      (&ctx, input, input_size);
+    crypto_blake2b_final       (&ctx, digest);
+
+    if (digest_size > 64) {
+        // the conversion to u64 avoids integer overflow on
+        // ludicrously big hash sizes.
+        u32 r   = (u32)(((u64)digest_size + 31) >> 5) - 2;
+        u32 i   =  1;
+        u32 in  =  0;
+        u32 out = 32;
+        while (i < r) {
+            // Input and output overlap. This is intentional
+            crypto_blake2b(digest + out, digest + in, 64);
+            i   +=  1;
+            in  += 32;
+            out += 32;
+        }
+        crypto_blake2b_general(digest + out, digest_size - (32 * r),
+                               0, 0, // no key
+                               digest + in , 64);
+    }
+}
+
+#define LSB(x) ((x) & 0xffffffff)
+#define G(a, b, c, d)                                            \
+    a += b + 2 * LSB(a) * LSB(b);  d ^= a;  d = rotr64(d, 32);   \
+    c += d + 2 * LSB(c) * LSB(d);  b ^= c;  b = rotr64(b, 24);   \
+    a += b + 2 * LSB(a) * LSB(b);  d ^= a;  d = rotr64(d, 16);   \
+    c += d + 2 * LSB(c) * LSB(d);  b ^= c;  b = rotr64(b, 63)
+#define ROUND(v0,  v1,  v2,  v3,  v4,  v5,  v6,  v7,    \
+              v8,  v9, v10, v11, v12, v13, v14, v15)    \
+    G(v0, v4,  v8, v12);  G(v1, v5,  v9, v13);          \
+    G(v2, v6, v10, v14);  G(v3, v7, v11, v15);          \
+    G(v0, v5, v10, v15);  G(v1, v6, v11, v12);          \
+    G(v2, v7,  v8, v13);  G(v3, v4,  v9, v14)
+
+// Core of the compression function G.  Computes Z from R in place.
+static void g_rounds(block *work_block)
+{
+    // column rounds (work_block = Q)
+    for (int i = 0; i < 128; i += 16) {
+        ROUND(work_block->a[i     ], work_block->a[i +  1],
+              work_block->a[i +  2], work_block->a[i +  3],
+              work_block->a[i +  4], work_block->a[i +  5],
+              work_block->a[i +  6], work_block->a[i +  7],
+              work_block->a[i +  8], work_block->a[i +  9],
+              work_block->a[i + 10], work_block->a[i + 11],
+              work_block->a[i + 12], work_block->a[i + 13],
+              work_block->a[i + 14], work_block->a[i + 15]);
+    }
+    // row rounds (work_block = Z)
+    for (int i = 0; i < 16; i += 2) {
+        ROUND(work_block->a[i      ], work_block->a[i +   1],
+              work_block->a[i +  16], work_block->a[i +  17],
+              work_block->a[i +  32], work_block->a[i +  33],
+              work_block->a[i +  48], work_block->a[i +  49],
+              work_block->a[i +  64], work_block->a[i +  65],
+              work_block->a[i +  80], work_block->a[i +  81],
+              work_block->a[i +  96], work_block->a[i +  97],
+              work_block->a[i + 112], work_block->a[i + 113]);
+    }
+}
+
+// Argon2i uses a kind of stream cipher to determine which reference
+// block it will take to synthesise the next block.  This context hold
+// that stream's state.  (It's very similar to Chacha20.  The block b
+// is analogous to Chacha's own pool)
+typedef struct {
+    block b;
+    u32 pass_number;
+    u32 slice_number;
+    u32 nb_blocks;
+    u32 nb_iterations;
+    u32 ctr;
+    u32 offset;
+} gidx_ctx;
+
+// The block in the context will determine array indices. To avoid
+// timing attacks, it only depends on public information.  No looking
+// at a previous block to seed the next.  This makes offline attacks
+// easier, but timing attacks are the bigger threat in many settings.
+static void gidx_refresh(gidx_ctx *ctx)
+{
+    // seed the beginning of the block...
+    ctx->b.a[0] = ctx->pass_number;
+    ctx->b.a[1] = 0;  // lane number (we have only one)
+    ctx->b.a[2] = ctx->slice_number;
+    ctx->b.a[3] = ctx->nb_blocks;
+    ctx->b.a[4] = ctx->nb_iterations;
+    ctx->b.a[5] = 1;  // type: Argon2i
+    ctx->b.a[6] = ctx->ctr;
+    ZERO(ctx->b.a + 7, 121); // ...then zero the rest out
+
+    // Shuffle the block thus: ctx->b = G((G(ctx->b, zero)), zero)
+    // (G "square" function), to get cheap pseudo-random numbers.
+    block tmp;
+    copy_block(&tmp, &ctx->b);
+    g_rounds  (&ctx->b);
+    xor_block (&ctx->b, &tmp);
+    copy_block(&tmp, &ctx->b);
+    g_rounds  (&ctx->b);
+    xor_block (&ctx->b, &tmp);
+    wipe_block(&tmp);
+}
+
+static void gidx_init(gidx_ctx *ctx,
+                      u32 pass_number, u32 slice_number,
+                      u32 nb_blocks,   u32 nb_iterations)
+{
+    ctx->pass_number   = pass_number;
+    ctx->slice_number  = slice_number;
+    ctx->nb_blocks     = nb_blocks;
+    ctx->nb_iterations = nb_iterations;
+    ctx->ctr           = 0;
+
+    // Offset from the beginning of the segment.  For the first slice
+    // of the first pass, we start at the *third* block, so the offset
+    // starts at 2, not 0.
+    if (pass_number != 0 || slice_number != 0) {
+        ctx->offset = 0;
+    } else {
+        ctx->offset = 2;
+        ctx->ctr++;         // Compensates for missed lazy creation
+        gidx_refresh(ctx);  // at the start of gidx_next()
+    }
+}
+
+static u32 gidx_next(gidx_ctx *ctx)
+{
+    // lazily creates the offset block we need
+    if ((ctx->offset & 127) == 0) {
+        ctx->ctr++;
+        gidx_refresh(ctx);
+    }
+    u32 index  = ctx->offset & 127; // save index  for current call
+    u32 offset = ctx->offset;       // save offset for current call
+    ctx->offset++;                  // update offset for next call
+
+    // Computes the area size.
+    // Pass 0 : all already finished segments plus already constructed
+    //          blocks in this segment
+    // Pass 1+: 3 last segments plus already constructed
+    //          blocks in this segment.  THE SPEC SUGGESTS OTHERWISE.
+    //          I CONFORM TO THE REFERENCE IMPLEMENTATION.
+    int first_pass  = ctx->pass_number == 0;
+    u32 slice_size  = ctx->nb_blocks >> 2;
+    u32 nb_segments = first_pass ? ctx->slice_number : 3;
+    u32 area_size   = nb_segments * slice_size + offset - 1;
+
+    // Computes the starting position of the reference area.
+    // CONTRARY TO WHAT THE SPEC SUGGESTS, IT STARTS AT THE
+    // NEXT SEGMENT, NOT THE NEXT BLOCK.
+    u32 next_slice = ((ctx->slice_number + 1) & 3) * slice_size;
+    u32 start_pos  = first_pass ? 0 : next_slice;
+
+    // Generate offset from J1 (no need for J2, there's only one lane)
+    u64 j1  = ctx->b.a[index] & 0xffffffff; // pseudo-random number
+    u64 x   = (j1 * j1)       >> 32;
+    u64 y   = (area_size * x) >> 32;
+    u64 z   = (area_size - 1) - y;
+    u64 ref = start_pos + z;                // ref < 2 * nb_blocks
+    return (u32)(ref < ctx->nb_blocks ? ref : ref - ctx->nb_blocks);
+}
+
+// Main algorithm
+void crypto_argon2i_general(u8       *hash,      u32 hash_size,
+                            void     *work_area, u32 nb_blocks,
+                            u32 nb_iterations,
+                            const u8 *password,  u32 password_size,
+                            const u8 *salt,      u32 salt_size,
+                            const u8 *key,       u32 key_size,
+                            const u8 *ad,        u32 ad_size)
+{
+    // work area seen as blocks (must be suitably aligned)
+    block *blocks = (block*)work_area;
+    {
+        crypto_blake2b_ctx ctx;
+        crypto_blake2b_init(&ctx);
+
+        blake_update_32      (&ctx, 1            ); // p: number of threads
+        blake_update_32      (&ctx, hash_size    );
+        blake_update_32      (&ctx, nb_blocks    );
+        blake_update_32      (&ctx, nb_iterations);
+        blake_update_32      (&ctx, 0x13         ); // v: version number
+        blake_update_32      (&ctx, 1            ); // y: Argon2i
+        blake_update_32      (&ctx,           password_size);
+        crypto_blake2b_update(&ctx, password, password_size);
+        blake_update_32      (&ctx,           salt_size);
+        crypto_blake2b_update(&ctx, salt,     salt_size);
+        blake_update_32      (&ctx,           key_size);
+        crypto_blake2b_update(&ctx, key,      key_size);
+        blake_update_32      (&ctx,           ad_size);
+        crypto_blake2b_update(&ctx, ad,       ad_size);
+
+        u8 initial_hash[72]; // 64 bytes plus 2 words for future hashes
+        crypto_blake2b_final(&ctx, initial_hash);
+
+        // fill first 2 blocks
+        u8 hash_area[1024];
+        store32_le(initial_hash + 64, 0); // first  additional word
+        store32_le(initial_hash + 68, 0); // second additional word
+        extended_hash(hash_area, 1024, initial_hash, 72);
+        load_block(blocks, hash_area);
+
+        store32_le(initial_hash + 64, 1); // slight modification
+        extended_hash(hash_area, 1024, initial_hash, 72);
+        load_block(blocks + 1, hash_area);
+
+        WIPE_BUFFER(initial_hash);
+        WIPE_BUFFER(hash_area);
+    }
+
+    // Actual number of blocks
+    nb_blocks -= nb_blocks & 3; // round down to 4 p (p == 1 thread)
+    const u32 segment_size = nb_blocks >> 2;
+
+    // fill (then re-fill) the rest of the blocks
+    block tmp;
+    gidx_ctx ctx; // public information, no need to wipe
+    FOR_T (u32, pass_number, 0, nb_iterations) {
+        int first_pass = pass_number == 0;
+
+        FOR_T (u32, segment, 0, 4) {
+            gidx_init(&ctx, pass_number, segment, nb_blocks, nb_iterations);
+
+            // On the first segment of the first pass,
+            // blocks 0 and 1 are already filled.
+            // We use the offset to skip them.
+            u32 start_offset  = first_pass && segment == 0 ? 2 : 0;
+            u32 segment_start = segment * segment_size + start_offset;
+            u32 segment_end   = (segment + 1) * segment_size;
+            FOR_T (u32, current_block, segment_start, segment_end) {
+                block *reference = blocks + gidx_next(&ctx);
+                block *current   = blocks + current_block;
+                block *previous  = current_block == 0
+                                 ? blocks + nb_blocks - 1
+                                 : blocks + current_block - 1;
+                // Apply compression function G,
+                // And copy it (or XOR it) to the current block.
+                copy_block(&tmp, previous);
+                xor_block (&tmp, reference);
+                if (first_pass) { copy_block(current, &tmp); }
+                else            { xor_block (current, &tmp); }
+                g_rounds  (&tmp);
+                xor_block (current, &tmp);
+            }
+        }
+    }
+    wipe_block(&tmp);
+    u8 final_block[1024];
+    store_block(final_block, blocks + (nb_blocks - 1));
+
+    // wipe work area
+    volatile u64 *p = (u64*)work_area;
+    ZERO(p, 128 * nb_blocks);
+
+    // hash the very last block with H' into the output hash
+    extended_hash(hash, hash_size, final_block, 1024);
+    WIPE_BUFFER(final_block);
+}
+
+void crypto_argon2i(u8   *hash,      u32 hash_size,
+                    void *work_area, u32 nb_blocks, u32 nb_iterations,
+                    const u8 *password,  u32 password_size,
+                    const u8 *salt,      u32 salt_size)
+{
+    crypto_argon2i_general(hash, hash_size, work_area, nb_blocks, nb_iterations,
+                           password, password_size, salt , salt_size, 0,0,0,0);
+}
+
 
 ////////////////////////////////////
 /// Arithmetic modulo 2^255 - 19 ///
@@ -1706,7 +2218,11 @@ void crypto_sign_public_key_custom_hash(u8       public_key[32],
     WIPE_CTX(&A);
 }
 
-// void crypto_sign_public_key()
+//~ void crypto_sign_public_key(u8 public_key[32], const u8 secret_key[32])
+//~ {
+    //~ crypto_sign_public_key_custom_hash(public_key, secret_key,
+                                       //~ &crypto_blake2b_vtable);
+//~ }
 
 void crypto_sign_init_first_pass_custom_hash(crypto_sign_ctx_abstract *ctx,
                                              const u8 secret_key[32],
@@ -1734,7 +2250,13 @@ void crypto_sign_init_first_pass_custom_hash(crypto_sign_ctx_abstract *ctx,
     ctx->hash->update(ctx, prefix , 32);
 }
 
-// void crypto_sign_init_first_pass()
+//~ void crypto_sign_init_first_pass(crypto_sign_ctx_abstract *ctx,
+                                 //~ const u8 secret_key[32],
+                                 //~ const u8 public_key[32])
+//~ {
+    //~ crypto_sign_init_first_pass_custom_hash(ctx, secret_key, public_key,
+                                            //~ &crypto_blake2b_vtable);
+//~ }
 
 void crypto_sign_update(crypto_sign_ctx_abstract *ctx,
                         const u8 *msg, size_t msg_size)
@@ -1776,7 +2298,19 @@ void crypto_sign_final(crypto_sign_ctx_abstract *ctx, u8 signature[64])
     crypto_wipe(ctx, ctx->hash->ctx_size);
 }
 
-//  void crypto_sign()
+//~ void crypto_sign(u8        signature[64],
+                 //~ const u8  secret_key[32],
+                 //~ const u8  public_key[32],
+                 //~ const u8 *message, size_t message_size)
+//~ {
+    //~ crypto_sign_ctx ctx;
+    //~ crypto_sign_ctx_abstract *actx = (crypto_sign_ctx_abstract*)&ctx;
+    //~ crypto_sign_init_first_pass (actx, secret_key, public_key);
+    //~ crypto_sign_update          (actx, message, message_size);
+    //~ crypto_sign_init_second_pass(actx);
+    //~ crypto_sign_update          (actx, message, message_size);
+    //~ crypto_sign_final           (actx, signature);
+//~ }
 
 void crypto_check_init_custom_hash(crypto_check_ctx_abstract *ctx,
                                    const u8 signature[64],
@@ -1791,7 +2325,12 @@ void crypto_check_init_custom_hash(crypto_check_ctx_abstract *ctx,
     ctx->hash->update(ctx, public_key, 32);
 }
 
-//  void crypto_check_init()  
+//~ void crypto_check_init(crypto_check_ctx_abstract *ctx, const u8 signature[64],
+                       //~ const u8 public_key[32])
+//~ {
+    //~ crypto_check_init_custom_hash(ctx, signature, public_key,
+                                  //~ &crypto_blake2b_vtable);
+//~ }
 
 void crypto_check_update(crypto_check_ctx_abstract *ctx,
                          const u8 *msg, size_t msg_size)
@@ -1818,8 +2357,20 @@ int crypto_check_final(crypto_check_ctx_abstract *ctx)
     return crypto_verify32(ctx->buf, ctx->pk);    // R == R_check ? OK : fail
 }
 
-// int crypto_check()
+//~ int crypto_check(const u8  signature[64], const u8 public_key[32],
+                 //~ const u8 *message, size_t message_size)
+//~ {
+    //~ crypto_check_ctx ctx;
+    //~ crypto_check_ctx_abstract *actx = (crypto_check_ctx_abstract*)&ctx;
+    //~ crypto_check_init  (actx, signature, public_key);
+    //~ crypto_check_update(actx, message, message_size);
+    //~ return crypto_check_final(actx);
+//~ }
 
+/// --EdDSA to X25519 ///
+/// --Dirty ephemeral public key generation ///
+/// --Elligator 2 ///
+//-- Elligator inverse map
 
 ////////////////////
 /// Key exchange ///

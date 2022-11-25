@@ -125,21 +125,29 @@ assert(#lz.lzma(("a"):rep(301)) < 30)
 
 
 ------------------------------------------------------------------------
-print("testing blake3...")
+print("testing blake2b...")
 
-dig = lz.blake3("Hello, World!", nil, 65)  -- get a 65-byte hash
-assert(dig == hextos[[
-	288a86a79f20a3d6dccdca7713beaed1
-	78798296bdfa7913fa2a62d9727bf8f8
-	d7f01a496647e626c0d07fa6a060cbe3
-	8bf116e3a05f489a9720924b875f1677
-	04
-]])
-dig = lz.blake3("Hello, World!!!") -- get a default, 32-byte hash
-assert(dig == hextos[[
-	ab04a6c9b4bbdfcb66dccef112d9e6f3
-	99788de1bfe5005ef857756e7a4a5396
-]])
+local e, t, dig, ctx, dig51, dig52, dig53, dig54, dig55
+t = "The quick brown fox jumps over the lazy dog"
+e = hextos[[		
+	A8ADD4BDDDFD93E4877D2746E62817B1
+	16364A1FA7BC148D95090BC7333B3673
+	F82401CF7AA2E4CB1ECD90296E3F14CB
+	5413F8ED77BE73045B13914CDCD6A918
+	]]
+		
+-- test default
+dig = lz.blake2b(t)
+assert(e == dig)
+
+dig = lz.blake2b(t, 64, "")
+assert(e == dig)
+
+-- need test vectors for shorter, and keyed digests 
+
+dig = lz.blake2b(t, 64, "aaa")
+assert(e ~= dig)
+
 
 ------------------------------------------------------------------------
 print("testing authenticated encryption...")
@@ -277,6 +285,17 @@ assert(lz.ed25519_check(sig, pk, t))
 -- modified text doesn't check
 assert(not lz.ed25519_check(sig, pk, t .. "!"))
 
+
+------------------------------------------------------------------------
+print("testing argon kdf...")
+
+pw = "hello"
+salt = "salt salt salt"
+k = ""
+c0 = os.clock()
+k = lz.argon2i(pw, salt, 100000, 10)
+assert(#k == 32)
+print("argon2i (100MB, 10 iter) Execution time (sec): ", os.clock()-c0)
 
 ------------------------------------------------------------------------
 print("\ntest_luazen", "ok\n")

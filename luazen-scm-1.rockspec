@@ -34,22 +34,16 @@ build = {
 			"src/lzma/LzmaEnc.c",
 			"src/lzma/LzmaLib.c",
 			"src/lzma/lualzma.c",
-			"src/blake3/blake3.c",
-			"src/blake3/blake3_dispatch.c",
-			"src/blake3/blake3_portable.c",
-			"src/blake3/luablake3.c",
 			"src/mono/monocypher.c",
 			"src/mono/monocypher-ed25519.c",
 			"src/mono/randombytes.c",
 			"src/mono/luamonocypher.c"
 		},
 		incdir = {
-			"src", "src/lzma", "src/blake3", "src/mono", 
+			"src", "src/lzma", "src/mono", 
 		},
 		defines = {
 			"_7ZIP_ST",
-			-DBLAKE3_NO_SSE2 -DBLAKE3_NO_SSE41 
-			-DBLAKE3_NO_AVX2 -DBLAKE3_NO_AVX512
 		}
 	  }
    },
