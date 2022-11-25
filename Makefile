@@ -14,10 +14,9 @@ CFLAGS= -Os -fPIC $(LUAINC) $(FUNCS)
 LDFLAGS= -fPIC 
 
 OBJS= \
-	md5.o \
 	Alloc.o LzFind.o LzmaDec.o LzmaEnc.o LzmaLib.o lualzma.o \
 	monocypher.o monocypher-ed25519.o luamonocypher.o \
-	randombytes.o
+	base64.o md5.o random.o
 
 all: luazen.so
 

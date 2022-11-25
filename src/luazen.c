@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Phil Leblanc  -- see LICENSE file
+// Copyright (c) 2022 Phil Leblanc  -- see LICENSE file
 // ---------------------------------------------------------------------
 /*
 luazen crypto, encoding and compression library
@@ -82,16 +82,17 @@ static void llib_init() {
 	// luazen function declarations - comment APPEND lines to 
 	// remove functions from the luazen build
 	//
-	APPEND(md5)
-	//
 	//from lzma
 	APPEND(lzma)
 	APPEND(unlzma)
 	//
-	// from mono
+	// from random, base64, md5
 	APPEND(randombytes)
 	APPEND(b64encode)
 	APPEND(b64decode)
+	APPEND(md5)
+	//
+	// from mono
 	APPEND(encrypt)
 	APPEND(decrypt)
 	APPEND(blake2b)
@@ -103,7 +104,6 @@ static void llib_init() {
 	APPEND(ed25519_sign)
 	APPEND(ed25519_check)
 	APPEND(sha512)	
-
 	//
 } //llib_init()
 
