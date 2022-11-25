@@ -218,8 +218,8 @@ Rockspec files are also provided to build the previous luazen version (v0.16) an
 
 Luazen is distributed under the terms of the MIT License. 
 
-- The luazen library is largely based on the Monocypher library (xchacha, blake2b, argon2i,  x25519 DH, sha512 and ed25519 signature) Code is public domain - see http://loup-vaillant.fr/projects/monocypher/
-- lzma compression from the LZMA SDK, Igor Pavlov
+- The luazen library is largely based on the [Monocypher](http://loup-vaillant.fr/projects/monocypher/) library  (public domain - see monocypher license in the src tree)
+- lzma compression from the [LZMA SDK](https://7-zip.org/sdk.html), Igor Pavlov
 - base64 functions by Luiz Henrique de Figueiredo (public domain)
 - md5 by Cameron Rich (BSD)
 
