@@ -8,9 +8,9 @@ description = {
    detailed = [[
 	  A small library with various encoding functions (base64), 
 	  compression functions (LZMA), authenticated encryption
-	  (XChacha20/Poly1305), cryptographic hash (Blake3, 
-	  SHA-512, md5), ec25519 key exchange and ed25519 digital
-	  signature functions. 
+	  (XChacha20/Poly1305), cryptographic hash (Blake2b, 
+	  SHA-512, MD5), ec25519 key exchange, ed25519 digital
+	  signature, and Argon2i key derivation (KDF). 
    ]],
    homepage = "https://github.com/philanc/luazen",
    license = "MIT",
@@ -28,6 +28,8 @@ build = {
 		sources = { 
 			"src/luazen.c",
 			"src/md5.c",
+			"src/base64.c",
+			"src/random.c",
 			"src/lzma/Alloc.c",
 			"src/lzma/LzFind.c",
 			"src/lzma/LzmaDec.c",
@@ -36,7 +38,6 @@ build = {
 			"src/lzma/lualzma.c",
 			"src/mono/monocypher.c",
 			"src/mono/monocypher-ed25519.c",
-			"src/mono/randombytes.c",
 			"src/mono/luamonocypher.c"
 		},
 		incdir = {
